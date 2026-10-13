@@ -141,7 +141,9 @@ public class MacWebViewSamlCaptureTests
             const value = localStorage.getItem('synthetic-session') ? 'cmV1c2Vk' : 'Zmlyc3Q=';
             localStorage.setItem('synthetic-session', 'true');
             document.forms[0].elements.SAMLResponse.value = value;
-            document.forms[0].submit();
+            // WebKit commits localStorage asynchronously. Keep this synthetic page alive
+            // before triggering helper shutdown; real sign-ins include user interaction.
+            setTimeout(() => document.forms[0].submit(), 2000);
             </script></body></html>
             """);
         var request = new SamlCaptureRequest
