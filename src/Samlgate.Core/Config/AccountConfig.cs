@@ -33,7 +33,7 @@ public sealed record AccountConfig
     /// <summary>Extra ACS URL to intercept besides the built-in AWS ones. Key: target_url.</summary>
     public string? TargetUrl { get; init; }
 
-    /// <summary>edge, chrome, chromium or brave (saml2aws: msedge, chrome, chromium). Key: browser_type.</summary>
+    /// <summary>edge, chrome, chromium, brave or webview (macOS 14+). Key: browser_type.</summary>
     public string? BrowserType { get; init; }
 
     /// <summary>Explicit browser executable. Key: browser_executable_path.</summary>

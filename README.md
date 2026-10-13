@@ -6,7 +6,7 @@
 
 samlgate opens your IdP sign-in (Microsoft Entra ID, Okta, Google Workspace, …) in a real browser, catches the
 SAML assertion on its way to AWS, exchanges it for temporary credentials with STS, and writes them to
-`~/.aws/credentials` in the same format saml2aws uses. It is a single ~7 MB native binary with no runtime,
+`~/.aws/credentials` in the same format saml2aws uses. The Windows release is a single ~7 MB native binary with no runtime,
 no Playwright and no browser-driver downloads.
 
 It is built for teams that:
@@ -33,7 +33,7 @@ Entra sign-in — samlgate closes the browser every time, so a session-only cook
 ## Install
 
 > **Windows only for now.** Builds are published for Windows x64 and ARM64; it has been tested on Windows 11 x64.
-> macOS and Linux are not supported yet (see [Roadmap](#roadmap)).
+> Packaged releases are Windows-only. An experimental macOS 14+ native WebView is available when building from source; Linux support remains experimental (see [Roadmap](#roadmap)).
 
 Download `samlgate-<version>-win-x64.zip` (or `win-arm64`) from
 [Releases](https://github.com/platpharm/samlgate/releases) and extract `samlgate.exe` into a folder on your `PATH`.
@@ -42,6 +42,24 @@ To build from source: `dotnet publish src/Samlgate -c Release -r win-x64` (.NET 
 "Desktop development with C++" workload for NativeAOT).
 
 **Requirements:** Microsoft Edge, which ships with Windows — or Google Chrome, Brave or Chromium.
+
+### Experimental macOS native WebView
+
+With .NET 10 and Xcode command-line tools installed, build for your Mac's architecture:
+
+```bash
+dotnet publish src/Samlgate -c Release -r osx-arm64 -o out
+# Use osx-x64 on an Intel Mac. Keep both output executables together.
+./out/samlgate login --browser webview
+```
+
+`--browser webview` opens an AppKit window backed by WKWebView; no Chromium installation or DevTools port is needed. It requires macOS 14+ and a user-controlled graphical desktop. Sign in directly in the window. Save the backend with `samlgate configure --browser webview --url "<IdP sign-in URL>"`. Chromium remains the default; `--browser-path` applies only to Chromium.
+
+The companion `samlgate-webview` executable cancels the AWS ACS POST before reading its submitting form. The assertion travels to the CLI over a private child-process pipe and then to STS; it is not written to disk or printed by `login`. The backend supports AWS partition/regional ACS URLs and `target_url`, and fails closed if the form cannot be read. It does not add headless login or automatic browser fallback.
+
+The native browser uses a separate persistent WebKit data store, identified by `SAMLGATE_DATA_DIR/browser/webview/webkit-profile-id`. WebKit manages the website data outside `SAMLGATE_DATA_DIR`; it is separate from Safari and Chromium. Keep that identifier to reuse the same session. Deleting it selects a new store but does **not** erase the old store. To erase this backend's store, close its windows and run `samlgate-webview --remove-profile <UUID-from-webkit-profile-id>` before deleting the identifier. This touches only that named store.
+
+Session reuse and passkey availability depend on the OS, IdP and its policies. Local native login does not establish that a cloud environment can perform user-controlled authentication or use the same passkey provider.
 
 ## Quick start
 
@@ -76,7 +94,7 @@ also right-click the app tile in [My Apps](https://myapps.microsoft.com) and cop
 | `samlgate exec -- <cmd> …` | Run a command with `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`/`AWS_SESSION_TOKEN` set. |
 
 Common options: `-a/--idp-account <name>` (config section, default `default`), `-p/--profile <name>` (credentials
-profile, default `saml`), `--role <arn>`, `--region`, `--session-duration <seconds>`, `--browser edge|chrome|brave|chromium`,
+profile, default `saml`), `--role <arn>`, `--region`, `--session-duration <seconds>`, `--browser edge|chrome|brave|chromium|webview`,
 `--browser-path <exe>`, `--timeout <seconds>`. Run `samlgate <command> --help` for the full list.
 
 ### Roles
@@ -112,7 +130,7 @@ saml2aws, so you can copy `~/.saml2aws` as-is; unknown keys are ignored.
 | `region` | partition default (`us-east-1`) | STS region. |
 | `aws_session_duration` | assertion's `SessionDuration`, else 3600 | Falls back to 3600 if the role's maximum is lower. |
 | `credentials_file` | `~/.aws/credentials` | Also honours `AWS_SHARED_CREDENTIALS_FILE`. |
-| `browser_type` | Edge | `edge`/`msedge`, `chrome`, `brave`, `chromium`. |
+| `browser_type` | auto-detected Chromium | `edge`/`msedge`, `chrome`, `brave`, `chromium`, or experimental `webview` (macOS 14+). |
 | `browser_executable_path` | auto-detected | |
 | `target_url` | AWS ACS URLs | Additional URL to intercept (custom ACS). |
 
@@ -124,14 +142,14 @@ The credentials profile contains `aws_access_key_id`, `aws_secret_access_key`, `
 ## Security notes
 
 - The SAML assertion is only sent to AWS STS. The intercepted ACS request is answered locally.
-- The browser profile is separate from your everyday profile and lives in the data directory; delete it to sign out.
+- The Chromium browser profile is separate from your everyday profile and lives in the data directory; delete it to sign out. Native WebKit data uses the named store described in the macOS section.
 - The credentials file is written atomically.
-- DevTools listens on a random port bound to `127.0.0.1` only while samlgate is running.
+- Chromium DevTools listens on a random port bound to `127.0.0.1` only while samlgate is running. The native WebView does not open a DevTools port.
 - No telemetry.
 
 ## Roadmap
 
-- macOS, including the Safari engine when no Chromium browser is installed (native WKWebView window)
+- Package and harden the experimental macOS WKWebView backend; optional fallback when Chromium is unavailable
 - Linux
 - Firefox via WebDriver BiDi
 - Try a headless sign-in first when the IdP session is still valid (no window at all)
@@ -145,6 +163,8 @@ dotnet run --project src/Samlgate -- help
 
 `src/Samlgate.Core` holds everything testable (config, SAML parsing, STS, credentials file, DevTools capture);
 `src/Samlgate` is the thin CLI (System.CommandLine). STS is called through AWSSDK.SecurityToken.
+
+`ISamlCapture` separates the browser backend from `LoginFlow`. On macOS, the Core build compiles `native/macos/SamlgateWebView.swift` with the system Swift compiler and copies the helper to CLI/test/publish output. Other platforms do not build it. Native tests use only local synthetic pages, require a macOS 14+ desktop, and are skipped on other platforms. Use `dotnet test --filter 'Category!=NativeBrowser'` on a Mac without a graphical session.
 
 ## License
 
