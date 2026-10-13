@@ -41,7 +41,7 @@ samlgate는 매번 브라우저를 닫기 때문에 세션 쿠키만 있으면 �
 소스 빌드: `dotnet publish src/Samlgate -c Release -r win-x64` (.NET 10 SDK, NativeAOT용 Visual Studio
 "C++를 사용한 데스크톱 개발" 워크로드 필요)
 
-**요구 사항:** Windows 기본 탑재 Microsoft Edge — 또는 Google Chrome, Brave, Chromium.
+**요구 사항:** Windows 기본 탑재 Microsoft Edge — 또는 Google Chrome, Brave, Chromium, Whale.
 
 ### macOS 네이티브 WebView (실험 기능)
 
@@ -93,8 +93,29 @@ Entra 관리 센터 → **엔터프라이즈 애플리케이션** → AWS 앱 �
 | `samlgate exec -- <명령> …` | `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`/`AWS_SESSION_TOKEN`을 넣어 명령 실행 |
 
 공통 옵션: `-a/--idp-account <이름>`(설정 섹션, 기본 `default`), `-p/--profile <이름>`(credentials 프로필, 기본 `saml`),
-`--role <arn>`, `--region`, `--session-duration <초>`, `--browser edge|chrome|brave|chromium|webview`, `--browser-path <실행 파일>`,
+`--role <arn>`, `--region`, `--session-duration <초>`, `--browser edge|chrome|brave|chromium|whale|webview`, `--browser-path <실행 파일>`,
 `--timeout <초>`. 전체 목록은 `samlgate <명령> --help`.
+
+### Chromium 언어와 세션 갱신
+
+Chrome·Edge·Brave·Chromium·Whale은 같은 CDP 캡처 구현을 사용합니다. Whale은 `--browser whale`로 선택하며, 일반 설치 위치 밖의 실행 파일은 `--browser-path`로 지정할 수 있습니다. 브라우저·관리 정책이 CDP를 허용해야 합니다.
+
+```bash
+# IdP의 언어별 화면 리소스가 로드되지 않을 때 명시적으로 언어를 선택합니다.
+samlgate login --browser chrome --browser-language en-US
+
+# AWS 자격증명이 유효해도 IdP를 다시 방문하며, 기존 세션을 먼저 시도합니다.
+samlgate login --browser chrome --browser-mode auto --browser-language en-US --force
+
+# 이후 로그인에 사용할 설정을 저장합니다.
+samlgate configure --url "<IdP 로그인 URL>" --browser chrome --browser-language en-US --browser-mode auto
+```
+
+기본값은 언어를 강제하지 않는 대화형 창입니다. 특정 IdP에 대한 자동 언어 우회는 추가하지 않습니다. `--browser-language`는 단일 언어 태그를 받으며, 기본 언어로 돌아가려면 계정 설정의 `browser_language`를 제거하세요.
+
+`auto` 모드는 기존 프로필이 있을 때 `--headless=new`로 시도합니다. `--silent-timeout`(기본 20초) 안에 SAML이 오지 않으면 헤드리스 브라우저를 닫은 뒤 같은 프로필로 대화형 창을 엽니다. 새 프로필은 곧바로 대화형 창을 엽니다. 두 시도는 전체 `--timeout`을 공유하며, 사용자 취소·브라우저 실행 오류·읽을 수 없는 ACS 응답은 자동 재시도하지 않습니다. 유효한 AWS 자격증명이 있으면 기존처럼 브라우저를 생략하므로 갱신 검증에는 `--force`를 사용하세요.
+
+무인 갱신은 비밀번호 입력·패스키 승인·IdP 정책 우회를 수행하지 않습니다. 재인증에는 사용자가 제어할 수 있는 그래픽 브라우저가 필요하며 SSH·클라우드 사용자 핸드오프를 제공하지 않습니다. 네이티브 `webview`는 Chromium 언어·auto 옵션을 무시하지 않고 오류로 안내합니다. 두 구현의 세션은 분리됩니다.
 
 ### 롤
 
@@ -127,8 +148,11 @@ region = ap-northeast-2
 | `region` | 파티션 기본값 (`us-east-1`) | STS 리전 |
 | `aws_session_duration` | assertion의 `SessionDuration`, 없으면 3600 | 롤 최대치보다 길면 3600으로 재시도 |
 | `credentials_file` | `~/.aws/credentials` | `AWS_SHARED_CREDENTIALS_FILE`도 반영 |
-| `browser_type` | Chromium 자동 탐색 | `edge`/`msedge`, `chrome`, `brave`, `chromium`, `webview`(macOS 14 이상, 실험 기능) |
+| `browser_type` | Chromium 자동 탐색 | `edge`/`msedge`, `chrome`, `brave`, `chromium`, `whale`, `webview`(macOS 14 이상, 실험 기능) |
 | `browser_executable_path` | 자동 탐색 | |
+| `browser_language` | 브라우저 기본값 | 단일 언어 태그(예: `en-US`), Chromium 전용 |
+| `browser_mode` | `interactive` | `auto`는 기존 Chromium 프로필을 헤드리스로 짧게 시도한 뒤 필요하면 창을 엽니다 |
+| `silent_timeout` | `20` | 전체 로그인 시간 제한 안에서 무인 갱신을 기다리는 초 |
 | `target_url` | AWS ACS URL | 추가로 가로챌 URL (커스텀 ACS) |
 
 credentials 프로필에는 saml2aws와 똑같이 `aws_access_key_id`, `aws_secret_access_key`, `aws_session_token`,
@@ -149,7 +173,7 @@ credentials 프로필에는 saml2aws와 똑같이 `aws_access_key_id`, `aws_secr
 - 실험적인 macOS WKWebView 구현의 배포·안정화 및 Chromium이 없을 때 선택적인 폴백
 - Linux 지원
 - WebDriver BiDi로 Firefox 지원
-- IdP 세션이 살아 있으면 헤드리스로 먼저 시도 (창이 아예 안 뜨게)
+- 선택적인 Chromium 자동 갱신의 IdP·플랫폼별 안정화
 
 ## 개발
 

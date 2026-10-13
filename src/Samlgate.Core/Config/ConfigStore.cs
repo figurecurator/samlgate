@@ -42,6 +42,9 @@ public sealed class ConfigStore(string configFile, string saml2AwsConfigFile)
         Add("target_url", config.TargetUrl);
         Add("browser_type", config.BrowserType);
         Add("browser_executable_path", config.BrowserExecutablePath);
+        Add("browser_language", config.BrowserLanguage);
+        Add("browser_mode", config.BrowserMode);
+        Add("silent_timeout", config.SilentTimeoutSeconds?.ToString(CultureInfo.InvariantCulture));
         IniFile.WriteSection(ConfigFile, config.Name, values);
 
         void Add(string key, string? value)
@@ -68,8 +71,23 @@ public sealed class ConfigStore(string configFile, string saml2AwsConfigFile)
             TargetUrl = Value(section, "target_url"),
             BrowserType = Value(section, "browser_type"),
             BrowserExecutablePath = Value(section, "browser_executable_path"),
+            BrowserLanguage = Value(section, "browser_language"),
+            BrowserMode = Value(section, "browser_mode"),
+            SilentTimeoutSeconds = PositiveSeconds(section, "silent_timeout"),
             Source = source,
         };
+    }
+
+    private static int? PositiveSeconds(IReadOnlyDictionary<string, string> section, string key)
+    {
+        if (Value(section, key) is not { } raw)
+        {
+            return null;
+        }
+
+        return int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var seconds) && seconds > 0
+            ? seconds
+            : throw new SamlgateException($"{key} must be a positive number of seconds.");
     }
 
     /// <summary>

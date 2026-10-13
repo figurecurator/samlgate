@@ -9,17 +9,18 @@ public sealed record BrowserInfo(string Kind, string ExecutablePath)
         "chrome" => "Google Chrome",
         "brave" => "Brave",
         "chromium" => "Chromium",
+        "whale" => "NAVER Whale",
         _ => Path.GetFileNameWithoutExtension(ExecutablePath),
     };
 }
 
 /// <summary>
-/// Finds an installed Chromium-based browser (Edge, Chrome, Brave, Chromium).
+/// Finds an installed Chromium-based browser (Edge, Chrome, Brave, Chromium, Whale).
 /// Safari and Firefox do not support the DevTools Protocol and are not supported yet.
 /// </summary>
 public static class BrowserLocator
 {
-    public static readonly string[] Kinds = ["edge", "chrome", "brave", "chromium"];
+    public static readonly string[] Kinds = ["edge", "chrome", "brave", "chromium", "whale"];
 
     public static BrowserInfo Locate(string? browserType, string? executablePath)
     {
@@ -44,7 +45,7 @@ public static class BrowserLocator
 
         throw new SamlgateException(kind is not null
             ? $"{kind} was not found. Install it, or set browser_executable_path / --browser-path."
-            : "No Chromium-based browser (Edge, Chrome, Brave, Chromium) was found. Install one, or set --browser-path.");
+            : "No Chromium-based browser (Edge, Chrome, Brave, Chromium, Whale) was found. Install one, or set --browser-path.");
     }
 
     /// <summary>Accepts samlgate names plus saml2aws' browser_type values (msedge, chrome, chromium).</summary>
@@ -61,7 +62,8 @@ public static class BrowserLocator
             "chrome" or "google-chrome" => "chrome",
             "brave" => "brave",
             "chromium" => "chromium",
-            "firefox" or "webkit" or "safari" => throw new SamlgateException($"browser_type '{browserType}' is not supported yet — samlgate currently needs a Chromium-based browser (edge, chrome, brave, chromium)."),
+            "whale" or "naver-whale" => "whale",
+            "firefox" or "webkit" or "safari" => throw new SamlgateException($"browser_type '{browserType}' is not supported yet — samlgate currently needs a Chromium-based browser (edge, chrome, brave, chromium, whale)."),
             _ => throw new SamlgateException($"Unknown browser_type '{browserType}'. Use one of: {string.Join(", ", Kinds)}."),
         };
     }
@@ -70,12 +72,12 @@ public static class BrowserLocator
     {
         if (OperatingSystem.IsWindows())
         {
-            return ["edge", "chrome", "brave", "chromium"]; // Edge ships with Windows
+            return ["edge", "chrome", "brave", "chromium", "whale"]; // Edge ships with Windows
         }
 
         return OperatingSystem.IsMacOS()
-            ? ["chrome", "edge", "brave", "chromium"]
-            : ["chrome", "chromium", "edge", "brave"];
+            ? ["chrome", "edge", "brave", "chromium", "whale"]
+            : ["chrome", "chromium", "edge", "brave", "whale"];
     }
 
     private static IEnumerable<string> Candidates(string kind)
@@ -94,6 +96,7 @@ public static class BrowserLocator
                 "edge" => @"Microsoft\Edge\Application\msedge.exe",
                 "chrome" => @"Google\Chrome\Application\chrome.exe",
                 "brave" => @"BraveSoftware\Brave-Browser\Application\brave.exe",
+                "whale" => @"Naver\Naver Whale\Application\whale.exe",
                 _ => @"Chromium\Application\chrome.exe",
             };
             return roots.Select(root => Path.Combine(root, relative));
@@ -106,6 +109,7 @@ public static class BrowserLocator
                 "edge" => "Microsoft Edge",
                 "chrome" => "Google Chrome",
                 "brave" => "Brave Browser",
+                "whale" => "Whale",
                 _ => "Chromium",
             };
             return new[] { "/Applications", Path.Combine(AppPaths.Home, "Applications") }
@@ -117,6 +121,7 @@ public static class BrowserLocator
             "edge" => new[] { "microsoft-edge", "microsoft-edge-stable" },
             "chrome" => ["google-chrome", "google-chrome-stable"],
             "brave" => ["brave-browser", "brave"],
+            "whale" => ["naver-whale", "naver-whale-stable"],
             _ => ["chromium", "chromium-browser"],
         };
         var pathDirs = (Environment.GetEnvironmentVariable("PATH") ?? string.Empty)

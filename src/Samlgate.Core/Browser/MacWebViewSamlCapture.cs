@@ -19,6 +19,11 @@ public sealed partial class MacWebViewSamlCapture : ISamlCapture
     public async Task<string> CaptureAsync(SamlCaptureRequest request, Action<string>? onStatus = null,
         CancellationToken cancellationToken = default)
     {
+        if (request.Language is not null || request.Mode != BrowserCaptureMode.Interactive)
+        {
+            throw new SamlgateException("Browser language and auto mode require a Chromium browser, not the native WebView.");
+        }
+
         if (!OperatingSystem.IsMacOSVersionAtLeast(14))
         {
             throw new SamlgateException("The native WebView requires macOS 14 or later.");

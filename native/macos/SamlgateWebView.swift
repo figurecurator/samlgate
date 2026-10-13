@@ -9,6 +9,13 @@ struct CaptureSettings: Decodable {
     let targetUrl: URL?
 }
 
+// HTTP is restricted to loopback synthetic fixtures; real IdP navigation starts with HTTPS.
+func isAllowedStartURL(_ url: URL) -> Bool {
+    if ["https", "file"].contains(url.scheme?.lowercased() ?? "") { return true }
+    return url.scheme?.lowercased() == "http" &&
+        ["127.0.0.1", "localhost", "[::1]"].contains(url.host?.lowercased() ?? "")
+}
+
 func isACS(_ url: URL, custom: URL?) -> Bool {
     guard let host = url.host?.lowercased() else { return false }
     if let custom, host == custom.host?.lowercased(), url.path.lowercased().hasPrefix(custom.path.lowercased()) {
@@ -182,7 +189,7 @@ struct Main {
         }
         guard let line = readLine(), let data = line.data(using: .utf8),
               let settings = try? JSONDecoder().decode(CaptureSettings.self, from: data),
-              ["https", "file"].contains(settings.url.scheme?.lowercased() ?? "") else {
+              isAllowedStartURL(settings.url) else {
             exit(1)
         }
         let application = NSApplication.shared

@@ -6,6 +6,22 @@ namespace Samlgate.Tests;
 
 public class MacWebViewSamlCaptureTests
 {
+    [Theory]
+    [InlineData("en-US", BrowserCaptureMode.Interactive)]
+    [InlineData(null, BrowserCaptureMode.Auto)]
+    public async Task ChromiumPreferences_AreRejectedBeforeOpeningNativeWindow(string? language, BrowserCaptureMode mode)
+    {
+        using var dir = new TempDir();
+        var error = await Assert.ThrowsAsync<SamlgateException>(() => new MacWebViewSamlCapture().CaptureAsync(
+            new SamlCaptureRequest
+            {
+                IdpUrl = new Uri("https://idp.example.test"), ProfileDirectory = dir.File("profile"),
+                Language = language, Mode = mode,
+            }));
+        Assert.Contains("require a Chromium browser", error.Message);
+        Assert.False(Directory.Exists(dir.File("profile")));
+    }
+
     [Fact]
     public void ProfileId_IsStableAndSeparateFromOtherProfiles()
     {
@@ -119,19 +135,20 @@ public class MacWebViewSamlCaptureTests
     public async Task Capture_PersistsWebStorageOnlyInTheSameNativeProfile()
     {
         using var dir = new TempDir();
-        var page = dir.File("idp.html");
-        await File.WriteAllTextAsync(page, """
+        await using var page = new LoopbackPage("""
             <html><body><form method="POST" action="https://signin.aws.amazon.com/saml">
             <input name="SAMLResponse"></form><script>
             const value = localStorage.getItem('synthetic-session') ? 'cmV1c2Vk' : 'Zmlyc3Q=';
             localStorage.setItem('synthetic-session', 'true');
             document.forms[0].elements.SAMLResponse.value = value;
-            document.forms[0].submit();
+            // WebKit commits localStorage asynchronously. Keep this synthetic page alive
+            // before triggering helper shutdown; real sign-ins include user interaction.
+            setTimeout(() => document.forms[0].submit(), 2000);
             </script></body></html>
             """);
         var request = new SamlCaptureRequest
         {
-            IdpUrl = new Uri(page), ProfileDirectory = dir.File("profile"), Timeout = TimeSpan.FromSeconds(30),
+            IdpUrl = page.Url, ProfileDirectory = dir.File("profile"), Timeout = TimeSpan.FromSeconds(30),
         };
         var capture = new MacWebViewSamlCapture();
         try

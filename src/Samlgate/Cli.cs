@@ -19,8 +19,11 @@ internal static class Cli
     public static readonly Option<string?> Url = new("--url") { Description = "IdP-initiated sign-in URL", HelpName = "url" };
     public static readonly Option<string?> Region = new("--region") { Description = "STS region (default: the partition's global region)", HelpName = "region" };
     public static readonly Option<int?> SessionDuration = Positive(new Option<int?>("--session-duration") { Description = "Requested session length in seconds", HelpName = "seconds" });
-    public static readonly Option<string?> Browser = new("--browser") { Description = "edge | chrome | brave | chromium | webview (macOS 14+)", HelpName = "kind" };
+    public static readonly Option<string?> Browser = new("--browser") { Description = "edge | chrome | brave | chromium | whale | webview (macOS 14+)", HelpName = "kind" };
     public static readonly Option<string?> BrowserPath = new("--browser-path") { Description = "Browser executable", HelpName = "path" };
+    public static readonly Option<string?> BrowserLanguage = new("--browser-language") { Description = "Chromium language tag (e.g. en-US); unset keeps the browser default", HelpName = "tag" };
+    public static readonly Option<string?> BrowserMode = new("--browser-mode") { Description = "interactive (default) | auto (try an existing session without a window first)", HelpName = "mode" };
+    public static readonly Option<int?> SilentTimeout = Positive(new Option<int?>("--silent-timeout") { Description = "Seconds to wait for a silent session refresh (default: 20), within --timeout", HelpName = "seconds" });
     public static readonly Option<string?> TargetUrl = new("--target-url") { Description = "Additional ACS URL to intercept", HelpName = "url" };
     public static readonly Option<string?> CredentialsFile = new("--credentials-file") { Description = "Credentials file (default: ~/.aws/credentials)", HelpName = "path" };
 
@@ -36,7 +39,7 @@ internal static class Cli
 
     public static RootCommand Build()
     {
-        Option[] account = [Account, Profile, Role, Url, Region, SessionDuration, Browser, BrowserPath, TargetUrl, CredentialsFile];
+        Option[] account = [Account, Profile, Role, Url, Region, SessionDuration, Browser, BrowserPath, BrowserLanguage, BrowserMode, SilentTimeout, TargetUrl, CredentialsFile];
         Option[] signIn = [.. account, Timeout, Force, SamlStdin];
 
         var root = new RootCommand("""
@@ -106,6 +109,9 @@ internal sealed record CliOptions
     public int? SessionDuration { get; init; }
     public string? Browser { get; init; }
     public string? BrowserPath { get; init; }
+    public string? BrowserLanguage { get; init; }
+    public string? BrowserMode { get; init; }
+    public int? SilentTimeoutSeconds { get; init; }
     public string? TargetUrl { get; init; }
     public string? CredentialsFile { get; init; }
     public TimeSpan Timeout { get; init; } = TimeSpan.FromMinutes(5);
@@ -123,6 +129,9 @@ internal sealed record CliOptions
         SessionDuration = result.GetValue(Cli.SessionDuration),
         Browser = result.GetValue(Cli.Browser),
         BrowserPath = result.GetValue(Cli.BrowserPath),
+        BrowserLanguage = result.GetValue(Cli.BrowserLanguage),
+        BrowserMode = result.GetValue(Cli.BrowserMode),
+        SilentTimeoutSeconds = result.GetValue(Cli.SilentTimeout),
         TargetUrl = result.GetValue(Cli.TargetUrl),
         CredentialsFile = result.GetValue(Cli.CredentialsFile),
         Timeout = TimeSpan.FromSeconds(result.GetValue(Cli.Timeout) ?? 300),
@@ -141,6 +150,9 @@ internal sealed record CliOptions
         SessionDurationSeconds = SessionDuration ?? config.SessionDurationSeconds,
         BrowserType = Browser ?? config.BrowserType,
         BrowserExecutablePath = BrowserPath ?? config.BrowserExecutablePath,
+        BrowserLanguage = BrowserLanguage ?? config.BrowserLanguage,
+        BrowserMode = BrowserMode ?? config.BrowserMode,
+        SilentTimeoutSeconds = SilentTimeoutSeconds ?? config.SilentTimeoutSeconds,
         TargetUrl = TargetUrl ?? config.TargetUrl,
         CredentialsFile = CredentialsFile ?? config.CredentialsFile,
     };
