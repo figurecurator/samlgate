@@ -18,8 +18,11 @@ public sealed record LoginOptions
 }
 
 /// <summary>Sign in with the IdP → pick a role → STS AssumeRoleWithSAML → write the credentials profile.</summary>
-public sealed class LoginFlow(StsClient sts, StateStore state)
+public sealed class LoginFlow(StsClient sts, StateStore state, ISamlCapture? capture)
 {
+    // Keep the existing public constructor for applications already using Samlgate.Core.
+    public LoginFlow(StsClient sts, StateStore state) : this(sts, state, null) { }
+
     public async Task<AwsSessionCredentials> RunAsync(
         AccountConfig account, LoginOptions options, CancellationToken cancellationToken = default)
     {
@@ -43,7 +46,7 @@ public sealed class LoginFlow(StsClient sts, StateStore state)
         return credentials;
     }
 
-    private static async Task<string> CaptureInBrowserAsync(
+    private async Task<string> CaptureInBrowserAsync(
         AccountConfig account, LoginOptions options, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(account.Url) || !Uri.TryCreate(account.Url, UriKind.Absolute, out var idpUrl))
@@ -51,14 +54,13 @@ public sealed class LoginFlow(StsClient sts, StateStore state)
             throw new SamlgateException($"No IdP URL for account '{account.Name}'. Run: samlgate configure --url <IdP sign-in URL>");
         }
 
-        var browser = BrowserLocator.Locate(account.BrowserType, account.BrowserExecutablePath);
+        var browser = capture ?? SamlCaptureFactory.Create(account.BrowserType, account.BrowserExecutablePath);
         options.OnStatus?.Invoke($"Opening {browser.DisplayName}...");
 
-        return await BrowserSamlCapture.CaptureAsync(new CaptureOptions
+        return await browser.CaptureAsync(new SamlCaptureRequest
         {
             IdpUrl = idpUrl,
-            Browser = browser,
-            ProfileDirectory = Path.Combine(AppPaths.DataDir, "browser", browser.Kind),
+            ProfileDirectory = Path.Combine(AppPaths.DataDir, "browser", browser.ProfileName),
             TargetUrl = account.TargetUrl,
             Timeout = options.Timeout,
         }, options.OnStatus, cancellationToken);

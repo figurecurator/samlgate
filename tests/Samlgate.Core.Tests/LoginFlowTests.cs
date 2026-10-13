@@ -4,11 +4,45 @@ using Amazon.SecurityToken;
 using Amazon.SecurityToken.Model;
 using Samlgate.Aws;
 using Samlgate.Config;
+using Samlgate.Browser;
 
 namespace Samlgate.Tests;
 
 public class LoginFlowTests
 {
+    [Fact]
+    public async Task RunAsync_UsesInjectedCaptureBeforeStsAndCredentialsWrite()
+    {
+        using var dir = new TempDir();
+        var sts = new FakeSts();
+        var capture = new FakeCapture(TestSaml.Response($"{TestSaml.DeveloperRole},{TestSaml.Provider}"));
+        var flow = new LoginFlow(sts.Client, new StateStore(dir.File("state")), capture);
+        await flow.RunAsync(new AccountConfig
+        {
+            Name = "default", Url = "https://idp.example.test/signin", CredentialsFile = dir.File("credentials"),
+            TargetUrl = "https://acs.example.test/saml",
+        }, new LoginOptions { Timeout = TimeSpan.FromSeconds(42) });
+        Assert.Equal("https://idp.example.test/signin", capture.Request!.IdpUrl.AbsoluteUri);
+        Assert.Equal("https://acs.example.test/saml", capture.Request.TargetUrl);
+        Assert.Equal(TimeSpan.FromSeconds(42), capture.Request.Timeout);
+        Assert.EndsWith(Path.Combine("browser", "fake"), capture.Request.ProfileDirectory);
+        Assert.Single(sts.Requests);
+        Assert.NotNull(CredentialsFile.Read(dir.File("credentials"), "saml"));
+    }
+
+    private sealed class FakeCapture(string assertion) : ISamlCapture
+    {
+        public string ProfileName => "fake";
+        public string DisplayName => "Synthetic browser";
+        public SamlCaptureRequest? Request { get; private set; }
+        public Task<string> CaptureAsync(SamlCaptureRequest request, Action<string>? onStatus = null,
+            CancellationToken cancellationToken = default)
+        {
+            Request = request;
+            return Task.FromResult(assertion);
+        }
+    }
+
     [Fact]
     public async Task RunAsync_WritesSaml2AwsCompatibleProfile()
     {

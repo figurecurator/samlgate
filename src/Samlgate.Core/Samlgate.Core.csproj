@@ -2,6 +2,7 @@
   <PropertyGroup>
     <RootNamespace>Samlgate</RootNamespace>
     <IsAotCompatible>true</IsAotCompatible>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
@@ -11,4 +12,23 @@
   <ItemGroup>
     <PackageReference Include="AWSSDK.SecurityToken" Version="4.0.101" />
   </ItemGroup>
+
+  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('OSX')) and ('$(RuntimeIdentifier)' == '' or $(RuntimeIdentifier.StartsWith('osx-')))">
+    <BuildMacWebView>true</BuildMacWebView>
+    <MacWebViewArchitecture Condition="'$(RuntimeIdentifier)' == 'osx-x64'">x86_64</MacWebViewArchitecture>
+    <MacWebViewArchitecture Condition="'$(RuntimeIdentifier)' == 'osx-arm64'">arm64</MacWebViewArchitecture>
+    <MacWebViewArchitecture Condition="'$(MacWebViewArchitecture)' == ''">$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString().ToLowerInvariant().Replace('x64', 'x86_64'))</MacWebViewArchitecture>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(BuildMacWebView)' == 'true'">
+    <Content Include="$(IntermediateOutputPath)native/samlgate-webview" Link="samlgate-webview"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <Target Name="BuildMacWebView" BeforeTargets="PrepareForBuild" Condition="'$(BuildMacWebView)' == 'true'"
+          Inputs="$(MSBuildProjectDirectory)/../../native/macos/SamlgateWebView.swift"
+          Outputs="$(IntermediateOutputPath)native/samlgate-webview">
+    <MakeDir Directories="$(IntermediateOutputPath)native" />
+    <Exec Command="xcrun swiftc -parse-as-library -O -warnings-as-errors -target $(MacWebViewArchitecture)-apple-macosx14.0 -framework AppKit -framework WebKit &quot;$(MSBuildProjectDirectory)/../../native/macos/SamlgateWebView.swift&quot; -o &quot;$(IntermediateOutputPath)native/samlgate-webview&quot;" />
+  </Target>
 </Project>

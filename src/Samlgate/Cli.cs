@@ -19,7 +19,7 @@ internal static class Cli
     public static readonly Option<string?> Url = new("--url") { Description = "IdP-initiated sign-in URL", HelpName = "url" };
     public static readonly Option<string?> Region = new("--region") { Description = "STS region (default: the partition's global region)", HelpName = "region" };
     public static readonly Option<int?> SessionDuration = Positive(new Option<int?>("--session-duration") { Description = "Requested session length in seconds", HelpName = "seconds" });
-    public static readonly Option<string?> Browser = new("--browser") { Description = "edge | chrome | brave | chromium", HelpName = "kind" };
+    public static readonly Option<string?> Browser = new("--browser") { Description = "edge | chrome | brave | chromium | webview (macOS 14+)", HelpName = "kind" };
     public static readonly Option<string?> BrowserPath = new("--browser-path") { Description = "Browser executable", HelpName = "path" };
     public static readonly Option<string?> TargetUrl = new("--target-url") { Description = "Additional ACS URL to intercept", HelpName = "url" };
     public static readonly Option<string?> CredentialsFile = new("--credentials-file") { Description = "Credentials file (default: ~/.aws/credentials)", HelpName = "path" };

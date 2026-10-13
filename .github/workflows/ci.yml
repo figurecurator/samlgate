@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  # Windows only for now — macOS and Linux are not supported yet
+  # Packaged releases remain Windows-only; macOS WebView is experimental.
   test:
     runs-on: windows-latest
     steps:
@@ -22,3 +22,16 @@ jobs:
       - name: NativeAOT build stays warning-free
         run: dotnet publish src/Samlgate/Samlgate.csproj -c Release -r win-x64 -o out -p:TreatWarningsAsErrors=true
       - run: ./out/samlgate.exe --version
+
+  macos:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Test (includes local synthetic native WebView capture)
+        run: dotnet test samlgate.slnx -c Release -p:TreatWarningsAsErrors=true
+      - name: Publish NativeAOT with companion WebView helper
+        run: dotnet publish src/Samlgate/Samlgate.csproj -c Release -r osx-arm64 -o out -p:TreatWarningsAsErrors=true
+      - run: ./out/samlgate --version && test -x ./out/samlgate-webview

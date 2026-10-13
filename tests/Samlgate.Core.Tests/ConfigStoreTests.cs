@@ -55,12 +55,13 @@ public class ConfigStoreTests
         using var dir = new TempDir();
         var store = new ConfigStore(dir.File("samlgate"), dir.File("saml2aws"));
 
-        store.Save(new AccountConfig { Name = "prod", Url = "https://idp.example", RoleArn = TestSaml.DeveloperRole });
+        store.Save(new AccountConfig { Name = "prod", Url = "https://idp.example", RoleArn = TestSaml.DeveloperRole, BrowserType = "webview" });
 
         var loaded = store.Load("prod")!;
         Assert.Equal("https://idp.example", loaded.Url);
         Assert.Equal(TestSaml.DeveloperRole, loaded.RoleArn);
         Assert.Equal(AccountConfig.DefaultProfile, loaded.Profile);
+        Assert.Equal("webview", loaded.BrowserType);
     }
 
     [Fact]
