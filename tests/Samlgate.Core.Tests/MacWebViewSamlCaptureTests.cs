@@ -135,8 +135,7 @@ public class MacWebViewSamlCaptureTests
     public async Task Capture_PersistsWebStorageOnlyInTheSameNativeProfile()
     {
         using var dir = new TempDir();
-        var page = dir.File("idp.html");
-        await File.WriteAllTextAsync(page, """
+        await using var page = new LoopbackPage("""
             <html><body><form method="POST" action="https://signin.aws.amazon.com/saml">
             <input name="SAMLResponse"></form><script>
             const value = localStorage.getItem('synthetic-session') ? 'cmV1c2Vk' : 'Zmlyc3Q=';
@@ -147,7 +146,7 @@ public class MacWebViewSamlCaptureTests
             """);
         var request = new SamlCaptureRequest
         {
-            IdpUrl = new Uri(page), ProfileDirectory = dir.File("profile"), Timeout = TimeSpan.FromSeconds(30),
+            IdpUrl = page.Url, ProfileDirectory = dir.File("profile"), Timeout = TimeSpan.FromSeconds(30),
         };
         var capture = new MacWebViewSamlCapture();
         try

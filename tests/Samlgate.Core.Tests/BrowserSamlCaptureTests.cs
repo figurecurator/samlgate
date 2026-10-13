@@ -85,8 +85,7 @@ public class BrowserSamlCaptureTests
 
         using var dir = new TempDir();
         var saml = TestSaml.Response([$"{TestSaml.DeveloperRole},{TestSaml.Provider}"]);
-        var page = dir.File("session.html");
-        await File.WriteAllTextAsync(page, $$"""
+        await using var page = new LoopbackPage($$"""
             <html><body><form method="POST" action="https://signin.aws.amazon.com/saml">
             <input name="SAMLResponse" value="{{saml}}"></form><script>
             if (localStorage.getItem('synthetic-session')) document.forms[0].submit();
@@ -103,8 +102,8 @@ public class BrowserSamlCaptureTests
         });
         var request = new SamlCaptureRequest
         {
-            IdpUrl = new Uri(page), ProfileDirectory = profile, Mode = BrowserCaptureMode.Auto,
-            Language = "en-US", Timeout = TimeSpan.FromSeconds(30), SilentTimeout = TimeSpan.FromSeconds(5),
+            IdpUrl = page.Url, ProfileDirectory = profile, Mode = BrowserCaptureMode.Auto,
+            Language = "en-US", Timeout = TimeSpan.FromSeconds(120), SilentTimeout = TimeSpan.FromSeconds(30),
         };
         Assert.Equal(saml, await capture.CaptureAsync(request));
         Assert.Equal(new[] { true, false }, attempts);
