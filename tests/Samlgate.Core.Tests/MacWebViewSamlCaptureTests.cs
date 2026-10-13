@@ -6,6 +6,22 @@ namespace Samlgate.Tests;
 
 public class MacWebViewSamlCaptureTests
 {
+    [Theory]
+    [InlineData("en-US", BrowserCaptureMode.Interactive)]
+    [InlineData(null, BrowserCaptureMode.Auto)]
+    public async Task ChromiumPreferences_AreRejectedBeforeOpeningNativeWindow(string? language, BrowserCaptureMode mode)
+    {
+        using var dir = new TempDir();
+        var error = await Assert.ThrowsAsync<SamlgateException>(() => new MacWebViewSamlCapture().CaptureAsync(
+            new SamlCaptureRequest
+            {
+                IdpUrl = new Uri("https://idp.example.test"), ProfileDirectory = dir.File("profile"),
+                Language = language, Mode = mode,
+            }));
+        Assert.Contains("require a Chromium browser", error.Message);
+        Assert.False(Directory.Exists(dir.File("profile")));
+    }
+
     [Fact]
     public void ProfileId_IsStableAndSeparateFromOtherProfiles()
     {

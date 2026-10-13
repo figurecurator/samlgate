@@ -33,11 +33,20 @@ public sealed record AccountConfig
     /// <summary>Extra ACS URL to intercept besides the built-in AWS ones. Key: target_url.</summary>
     public string? TargetUrl { get; init; }
 
-    /// <summary>edge, chrome, chromium, brave or webview (macOS 14+). Key: browser_type.</summary>
+    /// <summary>edge, chrome, chromium, brave, whale or webview (macOS 14+). Key: browser_type.</summary>
     public string? BrowserType { get; init; }
 
     /// <summary>Explicit browser executable. Key: browser_executable_path.</summary>
     public string? BrowserExecutablePath { get; init; }
+
+    /// <summary>Optional language tag passed to Chromium. Key: browser_language.</summary>
+    public string? BrowserLanguage { get; init; }
+
+    /// <summary>interactive (default) or auto: try an existing session headlessly before opening a window. Key: browser_mode.</summary>
+    public string? BrowserMode { get; init; }
+
+    /// <summary>Maximum silent attempt duration within the overall timeout. Key: silent_timeout.</summary>
+    public int? SilentTimeoutSeconds { get; init; }
 
     /// <summary>File the account was read from, for messages. Null when built from command-line flags only.</summary>
     public string? Source { get; init; }

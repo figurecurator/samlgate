@@ -78,4 +78,22 @@ public class ConfigStoreTests
         Assert.Equal("arn:2", state.GetLastRole("b"));
         Assert.Null(state.GetLastRole("c"));
     }
+
+    [Fact]
+    public void BrowserPreferences_RoundTripAndRejectInvalidSilentTimeout()
+    {
+        using var dir = new TempDir();
+        var store = new ConfigStore(dir.File("config"), dir.File("unused"));
+        store.Save(new AccountConfig
+        {
+            Name = "default", Url = "https://idp.example.test", BrowserLanguage = "en-US",
+            BrowserMode = "auto", SilentTimeoutSeconds = 5,
+        });
+        var loaded = store.Load("default")!;
+        Assert.Equal("en-US", loaded.BrowserLanguage);
+        Assert.Equal("auto", loaded.BrowserMode);
+        Assert.Equal(5, loaded.SilentTimeoutSeconds);
+        File.WriteAllText(dir.File("config"), "[default]\nsilent_timeout = 0\n");
+        Assert.Throws<SamlgateException>(() => store.Load("default"));
+    }
 }

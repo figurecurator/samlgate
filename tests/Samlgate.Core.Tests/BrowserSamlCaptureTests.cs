@@ -33,6 +33,7 @@ public class BrowserSamlCaptureTests
     [Theory]
     [InlineData("msedge", "edge")]
     [InlineData("Chrome", "chrome")]
+    [InlineData("naver-whale", "whale")]
     [InlineData(null, null)]
     public void NormalizeKind_AcceptsSaml2AwsNames(string? input, string? expected)
     {
@@ -44,6 +45,72 @@ public class BrowserSamlCaptureTests
     {
         Assert.Throws<SamlgateException>(() => BrowserLocator.NormalizeKind("firefox"));
         Assert.Throws<SamlgateException>(() => BrowserLocator.NormalizeKind("netscape"));
+    }
+
+    [Fact]
+    [Trait("Category", "Browser")]
+    public async Task Capture_LanguageOptionChangesNavigatorLanguage()
+    {
+        if (FindBrowser() is not { } browser)
+        {
+            return;
+        }
+
+        using var dir = new TempDir();
+        var saml = TestSaml.Response([$"{TestSaml.DeveloperRole},{TestSaml.Provider}"]);
+        var page = dir.File("language.html");
+        await File.WriteAllTextAsync(page, $$"""
+            <html><body><form method="POST" action="https://signin.aws.amazon.com/saml">
+            <input name="SAMLResponse"></form><script>
+            document.forms[0].elements.SAMLResponse.value = navigator.language === 'fr-CA' ? '{{saml}}' : 'wrong-language';
+            document.forms[0].submit();
+            </script></body></html>
+            """);
+        var captured = await BrowserSamlCapture.CaptureAsync(new CaptureOptions
+        {
+            IdpUrl = new Uri(page), Browser = browser, ProfileDirectory = dir.File("profile"),
+            Headless = true, Language = "fr-CA", Timeout = TimeSpan.FromSeconds(30),
+        });
+        Assert.Equal(saml, captured);
+    }
+
+    [Fact]
+    [Trait("Category", "Browser")]
+    public async Task AutoMode_ReusesProfileAfterSilentTimeoutInRealBrowser()
+    {
+        if (FindBrowser() is not { } browser)
+        {
+            return;
+        }
+
+        using var dir = new TempDir();
+        var saml = TestSaml.Response([$"{TestSaml.DeveloperRole},{TestSaml.Provider}"]);
+        var page = dir.File("session.html");
+        await File.WriteAllTextAsync(page, $$"""
+            <html><body><form method="POST" action="https://signin.aws.amazon.com/saml">
+            <input name="SAMLResponse" value="{{saml}}"></form><script>
+            if (localStorage.getItem('synthetic-session')) document.forms[0].submit();
+            else localStorage.setItem('synthetic-session', 'ready');
+            </script></body></html>
+            """);
+        var profile = dir.File("profile");
+        Directory.CreateDirectory(profile);
+        var attempts = new List<bool>();
+        var capture = new ChromiumSamlCapture(browser, (options, status, ct) =>
+        {
+            attempts.Add(options.Headless);
+            return BrowserSamlCapture.CaptureAsync(options, status, ct);
+        });
+        var request = new SamlCaptureRequest
+        {
+            IdpUrl = new Uri(page), ProfileDirectory = profile, Mode = BrowserCaptureMode.Auto,
+            Language = "en-US", Timeout = TimeSpan.FromSeconds(30), SilentTimeout = TimeSpan.FromSeconds(5),
+        };
+        Assert.Equal(saml, await capture.CaptureAsync(request));
+        Assert.Equal(new[] { true, false }, attempts);
+        attempts.Clear();
+        Assert.Equal(saml, await capture.CaptureAsync(request));
+        Assert.Equal(new[] { true }, attempts);
     }
 
     /// <summary>

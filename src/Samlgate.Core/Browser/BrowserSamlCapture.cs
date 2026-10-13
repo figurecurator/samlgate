@@ -18,8 +18,9 @@ public sealed record CaptureOptions
     public string? TargetUrl { get; init; }
     public TimeSpan Timeout { get; init; } = TimeSpan.FromMinutes(5);
 
-    /// <summary>For tests. A headless browser cannot take user input, so real logins never use it.</summary>
+    /// <summary>Tests or an existing-session refresh. User authentication requires an interactive fallback.</summary>
     public bool Headless { get; init; }
+    public string? Language { get; init; }
 }
 
 /// <summary>
@@ -88,6 +89,7 @@ public static class BrowserSamlCapture
 
     private static Process StartBrowser(CaptureOptions options)
     {
+        var language = BrowserPreferences.ValidateLanguage(options.Language);
         var startInfo = new ProcessStartInfo(options.Browser.ExecutablePath)
         {
             UseShellExecute = false,
@@ -112,6 +114,12 @@ public static class BrowserSamlCapture
         if (options.Headless)
         {
             startInfo.ArgumentList.Add("--headless=new");
+        }
+
+        if (language is not null)
+        {
+            startInfo.ArgumentList.Add($"--accept-lang={language}");
+            startInfo.ArgumentList.Add($"--lang={language}");
         }
 
         // Start on a blank page and navigate only after interception is in place, otherwise an IdP
@@ -229,7 +237,9 @@ public static class BrowserSamlCapture
 
         await cdp.SendAsync("Page.navigate", new JsonObject { ["url"] = options.IdpUrl.AbsoluteUri }, firstSession,
             cancellationToken);
-        onStatus?.Invoke("Complete the sign-in in the browser window.");
+        onStatus?.Invoke(options.Headless
+            ? "Waiting for the existing browser session..."
+            : "Complete the sign-in in the browser window.");
 
         while (true)
         {

@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Text.Json;
 using Samlgate.Aws;
 using Samlgate.Config;
+using Samlgate.Browser;
 
 namespace Samlgate;
 
@@ -17,6 +18,8 @@ internal static class Commands
         // Starting from Load() also imports a matching ~/.saml2aws section on first configure
         var existing = store.Load(cli.Account) ?? new AccountConfig { Name = cli.Account };
         var config = cli.ApplyTo(existing);
+        _ = BrowserPreferences.ValidateLanguage(config.BrowserLanguage);
+        _ = BrowserPreferences.ParseMode(config.BrowserMode);
 
         if (string.IsNullOrWhiteSpace(config.Url) || !Uri.TryCreate(config.Url, UriKind.Absolute, out _))
         {

@@ -41,7 +41,7 @@ Download `samlgate-<version>-win-x64.zip` (or `win-arm64`) from
 To build from source: `dotnet publish src/Samlgate -c Release -r win-x64` (.NET 10 SDK and the Visual Studio
 "Desktop development with C++" workload for NativeAOT).
 
-**Requirements:** Microsoft Edge, which ships with Windows — or Google Chrome, Brave or Chromium.
+**Requirements:** Microsoft Edge, which ships with Windows — or Google Chrome, Brave, Chromium or Whale.
 
 ### Experimental macOS native WebView
 
@@ -94,8 +94,29 @@ also right-click the app tile in [My Apps](https://myapps.microsoft.com) and cop
 | `samlgate exec -- <cmd> …` | Run a command with `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`/`AWS_SESSION_TOKEN` set. |
 
 Common options: `-a/--idp-account <name>` (config section, default `default`), `-p/--profile <name>` (credentials
-profile, default `saml`), `--role <arn>`, `--region`, `--session-duration <seconds>`, `--browser edge|chrome|brave|chromium|webview`,
+profile, default `saml`), `--role <arn>`, `--region`, `--session-duration <seconds>`, `--browser edge|chrome|brave|chromium|whale|webview`,
 `--browser-path <exe>`, `--timeout <seconds>`. Run `samlgate <command> --help` for the full list.
+
+### Chromium language and session refresh
+
+Chrome, Edge, Brave, Chromium and Whale use the same CDP capture backend. Use `--browser whale` to select Whale, or `--browser-path` for an executable outside the usual installation locations. Browser/vendor policies still need to permit CDP.
+
+```bash
+# Explicit language selection can help when an IdP's localized assets fail to load.
+samlgate login --browser chrome --browser-language en-US
+
+# Revisit the IdP even if current AWS credentials are valid; try the stored session first.
+samlgate login --browser chrome --browser-mode auto --browser-language en-US --force
+
+# Save preferences for future logins.
+samlgate configure --url "<IdP sign-in URL>" --browser chrome --browser-language en-US --browser-mode auto
+```
+
+The default remains an interactive window with no language override. No language is automatically forced for a particular IdP. `--browser-language` accepts one language tag; remove `browser_language` from the account configuration to return to the browser default.
+
+In `auto` mode, a profile that already exists is tried with `--headless=new`. If no SAML arrives before `--silent-timeout` (default 20 seconds), that browser is closed before an interactive browser opens on the same profile. A new profile goes directly to an interactive window. The silent attempt and interactive sign-in share `--timeout`; caller cancellation, browser launch failures and malformed ACS responses do not trigger fallback. Valid AWS credentials still skip browser login unless `--force` is used.
+
+Silent refresh does not enter passwords, approve passkeys or bypass IdP policies. Reauthentication requires a user-controlled graphical browser; this option does not provide SSH/cloud user handoff. The native `webview` backend rejects Chromium language/auto preferences instead of silently ignoring them. Native and Chromium sessions are separate.
 
 ### Roles
 
@@ -130,8 +151,11 @@ saml2aws, so you can copy `~/.saml2aws` as-is; unknown keys are ignored.
 | `region` | partition default (`us-east-1`) | STS region. |
 | `aws_session_duration` | assertion's `SessionDuration`, else 3600 | Falls back to 3600 if the role's maximum is lower. |
 | `credentials_file` | `~/.aws/credentials` | Also honours `AWS_SHARED_CREDENTIALS_FILE`. |
-| `browser_type` | auto-detected Chromium | `edge`/`msedge`, `chrome`, `brave`, `chromium`, or experimental `webview` (macOS 14+). |
+| `browser_type` | auto-detected Chromium | `edge`/`msedge`, `chrome`, `brave`, `chromium`, `whale`, or experimental `webview` (macOS 14+). |
 | `browser_executable_path` | auto-detected | |
+| `browser_language` | browser default | Optional single language tag, such as `en-US`; Chromium only. |
+| `browser_mode` | `interactive` | `auto` attempts a short headless refresh of an existing Chromium profile, then opens a window if needed. |
+| `silent_timeout` | `20` | Silent attempt limit in seconds, within the overall sign-in timeout. |
 | `target_url` | AWS ACS URLs | Additional URL to intercept (custom ACS). |
 
 The credentials profile contains `aws_access_key_id`, `aws_secret_access_key`, `aws_session_token`,
@@ -152,7 +176,7 @@ The credentials profile contains `aws_access_key_id`, `aws_secret_access_key`, `
 - Package and harden the experimental macOS WKWebView backend; optional fallback when Chromium is unavailable
 - Linux
 - Firefox via WebDriver BiDi
-- Try a headless sign-in first when the IdP session is still valid (no window at all)
+- Harden optional Chromium auto refresh across more IdPs and platforms
 
 ## Development
 
