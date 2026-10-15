@@ -32,8 +32,10 @@ Entra sign-in — samlgate closes the browser every time, so a session-only cook
 
 ## Install
 
-> **Windows only for now.** Builds are published for Windows x64 and ARM64; it has been tested on Windows 11 x64.
-> Packaged releases are Windows-only. An experimental macOS 14+ native WebView is available when building from source; Linux support remains experimental (see [Roadmap](#roadmap)).
+> **Windows and macOS.** Login has been verified on Windows 11 x64 and an Apple Silicon MacBook Pro.
+> Packaged releases are currently Windows x64 and ARM64 only; macOS users can build from source as described below. The macOS 14+ native WebView backend remains experimental, as does Linux support (see [Roadmap](#roadmap)).
+
+### Windows
 
 Download `samlgate-<version>-win-x64.zip` (or `win-arm64`) from
 [Releases](https://github.com/platpharm/samlgate/releases) and extract `samlgate.exe` into a folder on your `PATH`.
@@ -43,7 +45,10 @@ To build from source: `dotnet publish src/Samlgate -c Release -r win-x64` (.NET 
 
 **Requirements:** Microsoft Edge, which ships with Windows — or Google Chrome, Brave, Chromium or Whale.
 
-### Experimental macOS native WebView
+### macOS (Apple Silicon and Intel)
+
+Login has been confirmed on an Apple Silicon MacBook Pro.
+The source-build instructions below use the experimental native WebView backend (macOS 14+).
 
 With .NET 10 and Xcode command-line tools installed, build for your Mac's architecture:
 
