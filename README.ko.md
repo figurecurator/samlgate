@@ -32,8 +32,10 @@ samlgate는 매번 브라우저를 닫기 때문에 세션 쿠키만 있으면 �
 
 ## 설치
 
-> **현재는 Windows 전용입니다.** Windows x64·ARM64용 바이너리를 제공하며, Windows 11 x64에서 검증했습니다.
-> 배포 바이너리는 Windows용입니다. 소스 빌드에서는 macOS 14 이상용 네이티브 WebView를 실험적으로 사용할 수 있습니다. Linux 지원도 아직 실험 단계입니다([로드맵](#로드맵) 참고).
+> **Windows와 macOS에서 사용할 수 있습니다.** Windows 11 x64와 Apple Silicon MacBook Pro에서 로그인에 성공했습니다.
+> 현재 배포 바이너리는 Windows x64·ARM64용이며, macOS는 아래 소스 빌드 안내를 따릅니다. macOS 14 이상용 네이티브 WebView와 Linux 지원은 아직 실험 단계입니다([로드맵](#로드맵) 참고).
+
+### Windows
 
 [Releases](https://github.com/platpharm/samlgate/releases)에서 `samlgate-<버전>-win-x64.zip`(또는 `win-arm64`)을 받아
 `samlgate.exe`를 `PATH`에 있는 폴더에 풉니다.
@@ -43,7 +45,10 @@ samlgate는 매번 브라우저를 닫기 때문에 세션 쿠키만 있으면 �
 
 **요구 사항:** Windows 기본 탑재 Microsoft Edge — 또는 Google Chrome, Brave, Chromium, Whale.
 
-### macOS 네이티브 WebView (실험 기능)
+### macOS (Apple Silicon·Intel)
+
+Apple Silicon MacBook Pro에서 실제 로그인 성공을 확인했습니다.
+아래 소스 빌드 예시는 실험 기능인 네이티브 WebView(macOS 14 이상)를 사용합니다.
 
 .NET 10 SDK와 Xcode 명령줄 도구를 설치한 뒤 Mac의 아키텍처에 맞게 빌드합니다.
 
