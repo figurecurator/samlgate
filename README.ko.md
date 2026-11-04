@@ -8,7 +8,7 @@
 
 samlgate는 IdP 로그인(Microsoft Entra ID, Okta, Google Workspace 등)을 실제 브라우저에서 진행시키고,
 AWS로 향하는 SAML assertion을 중간에서 받아 STS로 임시 자격증명을 발급받은 뒤 `~/.aws/credentials`에
-saml2aws와 같은 형식으로 기록합니다. Windows 배포본은 런타임·Playwright·브라우저 드라이버 다운로드 없는 약 7MB 단일 네이티브 바이너리입니다.
+saml2aws와 같은 형식으로 기록합니다. Windows 배포본은 런타임·Playwright·브라우저 드라이버 다운로드 없는 약 13MB 단일 네이티브 바이너리입니다.
 
 이런 조직을 위해 만들었습니다.
 
@@ -26,13 +26,14 @@ SAML에는 `localhost` 콜백이 없습니다. 로그인이 끝나면 IdP가 브
 3. "창을 닫아도 됩니다" 로컬 페이지로 응답한 뒤 브라우저를 닫고,
 4. STS `AssumeRoleWithSAML`을 호출해 프로필을 기록합니다.
 
-전용 프로필에 IdP 쿠키가 남으므로 **로그인은 처음 한 번만** 하면 됩니다. 이후 자격증명이 만료되면 브라우저 창이
-몇 초 떴다 닫히는 정도로 갱신됩니다. (첫 Entra 로그인 때 **"로그인 상태를 유지하시겠습니까?"에 "예"**를 누르세요 —
+전용 프로필에 IdP 쿠키가 남으므로 IdP가 허용하는 동안 이후 갱신에서 세션을 재사용할 수 있습니다.
+세션 만료·MFA·조직 정책에 따라 다시 대화형 로그인이 필요할 수 있습니다. (첫 Entra 로그인 때 **"로그인 상태를 유지하시겠습니까?"에 "예"**를 누르세요 —
 samlgate는 매번 브라우저를 닫기 때문에 세션 쿠키만 있으면 사라집니다.)
 
 ## 설치
 
-> **Windows와 macOS에서 사용할 수 있습니다.** Windows 11 x64와 Apple Silicon MacBook Pro에서 로그인에 성공했습니다.
+> **Windows와 macOS에서 사용할 수 있습니다.** Windows 11 x64, 그리고 Microsoft Edge를 쓰는 Apple Silicon Mac(M1·M4 Pro)에서
+> 로그인에 성공했습니다([테스트한 환경](#테스트한-환경) 참고).
 > 배포 바이너리는 Windows x64·ARM64와 Apple Silicon macOS(Homebrew)용입니다. macOS 14 이상용 네이티브 WebView와 Linux 지원은 아직 실험 단계입니다([로드맵](#로드맵) 참고).
 
 ### Windows
@@ -40,30 +41,60 @@ samlgate는 매번 브라우저를 닫기 때문에 세션 쿠키만 있으면 �
 [Releases](https://github.com/figurecurator/samlgate/releases)에서 `samlgate-<버전>-win-x64.zip`(또는 `win-arm64`)을 받아
 `samlgate.exe`를 `PATH`에 있는 폴더에 풉니다.
 
+`PATH`에 추가하기 전에 압축을 푼 폴더에서 확인합니다.
+
+```powershell
+.\samlgate.exe --version
+.\samlgate.exe login --help
+```
+
+다운로드한 ZIP의 SHA256(`Get-FileHash <zip-path> -Algorithm SHA256`)을 릴리스의 `SHA256SUMS`와 대조합니다.
+Windows ARM64는 패키지를 제공하지만 ARM64 실기기 실행·로그인은 아직 미검증입니다.
+WinGet·Scoop manifest는 [`packaging/windows`](packaging/windows)에서 준비 중이며 아직 공개 배포하지 않았습니다.
+
 소스 빌드: `dotnet publish src/Samlgate -c Release -r win-x64` (.NET 10 SDK, NativeAOT용 Visual Studio
 "C++를 사용한 데스크톱 개발" 워크로드 필요)
 
 **요구 사항:** Windows 기본 탑재 Microsoft Edge — 또는 Google Chrome, Brave, Chromium, Whale.
 
-### macOS (Apple Silicon·Intel)
+### macOS
 
-Apple Silicon MacBook Pro에서 실제 로그인 성공을 확인했습니다.
-
-Apple Silicon Mac은 [Homebrew](https://brew.sh)로 설치할 수 있습니다.
+**Apple Silicon** — [Homebrew](https://brew.sh)로 설치합니다.
 
 ```bash
-brew install figurecurator/tap/samlgate
+brew install figurecurator/tap/samlgate     # samlgate와 samlgate-webview 헬퍼 설치
+samlgate --version
 ```
 
-아래 소스 빌드 예시는 실험 기능인 네이티브 WebView(macOS 14 이상)를 사용합니다.
+업데이트는 `brew upgrade samlgate`, 삭제는 `brew uninstall samlgate`입니다. 삭제해도 `~/.samlgate`, `~/.aws/credentials`,
+`~/Library/Application Support/samlgate`의 브라우저 프로필은 남습니다. Chromium의 저장된 세션은 해당 전용 프로필 디렉터리를 지워 초기화합니다.
+네이티브 WebView 데이터는 그 디렉터리 밖에 있으므로, samlgate를 제거하기 전에 아래 설명의 저장소 삭제 명령을 실행한 뒤 프로필 식별자를 지우세요.
+이미 제거했다면 samlgate를 다시 설치해 헬퍼를 복원한 뒤 실행하세요.
 
-.NET 10 SDK와 Xcode 명령줄 도구를 설치한 뒤 Mac의 아키텍처에 맞게 빌드합니다.
+**요구 사항:** 기본 방식에는 Microsoft Edge나 Google Chrome(또는 Brave, Chromium, Whale)이 필요합니다.
+
+**Intel Mac** — 배포 바이너리가 없습니다. `osx-x64` 소스 빌드는 되고 Apple Silicon의 Rosetta에서 실행되는 것까지 확인했지만,
+Intel 실기기에서는 아직 실행해보지 못했습니다. 사용 결과를 알려주시면 반영하겠습니다.
+
+**소스 빌드**(두 아키텍처 공통) — .NET 10 SDK와 Xcode 명령줄 도구가 필요합니다.
 
 ```bash
-dotnet publish src/Samlgate -c Release -r osx-arm64 -o out
-# Intel Mac에서는 osx-x64를 사용합니다. 출력된 실행 파일 두 개를 함께 보관하세요.
-./out/samlgate login --browser webview
+dotnet publish src/Samlgate -c Release -r osx-arm64 -o out    # Intel은 osx-x64
+./out/samlgate --version
 ```
+
+`samlgate`와 `samlgate-webview`를 같은 폴더에 두세요. 헬퍼는 universal(arm64 + x86_64)로 빌드되므로 Apple Silicon에서
+`osx-x64`로 교차 빌드해도 헬퍼가 정상 동작합니다.
+
+### 실험 기능: macOS 네이티브 WebView
+
+`samlgate login --browser webview`는 Chromium 없이 로그인합니다. 다음 이유로 실험 단계입니다.
+
+- **Chromium 방식보다 실사용 검증 범위가 좁습니다.** Apple Silicon MacBook Pro에서 Microsoft Entra ID 로그인("로그인 상태 유지" 포함)을
+  마쳤지만, 다른 IdP·MFA 방식·장기간 세션 재사용은 테스트하지 않았습니다. 자동 테스트(CI·로컬)는 합성 로컬 페이지만 사용합니다.
+- 헬퍼는 서명·공증된 앱 번들이 아니라 ad-hoc 서명된 명령줄 프로그램입니다. 앱 entitlement가 필요한 WebKit 기능,
+  특히 패스키 같은 플랫폼 인증기는 동작하지 않을 수 있고, 기기 기반 조건부 액세스도 테스트하지 않았습니다.
+- 대화형 전용입니다. `--browser-mode auto` 무인 갱신과 `--browser-language`를 지원하지 않습니다.
 
 `--browser webview`는 AppKit 창 안의 WKWebView에서 로그인을 진행합니다. macOS 14 이상과 사용자가 직접 제어할 수 있는 그래픽 데스크톱이 필요합니다. Chrome 설치나 DevTools 포트는 필요하지 않습니다. `samlgate configure --browser webview --url "<IdP 로그인 URL>"`로 선택을 저장할 수 있습니다. 기본 브라우저는 기존 Chromium 방식이며, `--browser-path`는 Chromium에만 적용됩니다.
 
@@ -88,6 +119,30 @@ samlgate status
 ```
 
 이미 saml2aws를 쓰고 있다면 1단계는 건너뛰세요 — `~/.samlgate`에 없는 계정은 `~/.saml2aws`에서 읽습니다.
+
+### saml2aws에서 옮기기
+
+기존 설정을 그대로 두고 `saml2aws login -a work`를 `samlgate login -a work`로 바꿉니다.
+같은 계정 절을 읽으며 `~/.saml2aws` 원본은 수정하지 않습니다. IdP 시작 SAML URL과 `aws_profile`을 확인하세요.
+사용하지 않는 키는 무시하며 provider별 인증 동작을 그대로 재현하지는 않습니다.
+전용 브라우저 프로필은 일상 브라우저와 별개이므로 첫 로그인은 대화형으로 진행합니다.
+
+### 첫 로그인과 이후 갱신
+
+1. **처음 `samlgate login`** 하면 전용 프로필로 브라우저 창이 열립니다. 로그인과 MFA를 마치고
+   **"로그인 상태를 유지하시겠습니까?"에 "예"**를 누르세요. IdP 앱에 AWS 롤이 여러 개면 터미널에서 하나를 고르며, 계정별로 기억합니다.
+   창은 저절로 닫히고 세션 정보가 출력됩니다.
+2. **자격증명이 유효한 동안**(5분 넘게 남음) `samlgate login`은 세션 정보만 출력하고 아무 창도 열지 않습니다.
+   측정값: M4 Pro MacBook Pro(macOS 27.2, Homebrew 0.2.0)에서 0.12초.
+3. **갱신이 필요하면** `samlgate login`은 브라우저를 열어 저장된 IdP 세션 재사용을 시도합니다.
+   `browser_mode = auto`(Chromium 전용)이고 기존 프로필이 있으면 먼저 헤드리스로 시도하며, 제한 시간이 지나면 로그인·MFA를 위한 창을 엽니다.
+   비밀번호 없이 재사용할 수 있는지는 IdP 정책에 따라 달라집니다.
+4. 일찍 다시 로그인하려면 `--force`를 쓰세요. 설정된 롤을 바꾸려면 `--role <arn>`도 지정해야 합니다. `--force`만으로는 `role_arn`이 유지됩니다.
+   여러 롤 중 선택하려면 `role_arn` 설정을 제거하세요. 스크립트에서는 `samlgate status`(유효하면 종료 코드 `0`)로 확인합니다.
+
+AWS 자격증명이 실제 만료된 뒤의 무인 갱신은 아직 검증하지 않았습니다. 아래 수치는 `--force`로 IdP를 다시 방문한 결과이며,
+유효한 기존 AWS 자격증명을 바로 재사용하는 경로의 측정값은 아닙니다. 측정 1회: 저장된 Entra 세션이 있는 상태에서 `auto` 모드로 `samlgate login --force`를 실행하니
+창 없이 헤드리스로 2.96초에 끝났습니다(M4 Pro MacBook Pro, Edge, `main` 소스 빌드, 2026-11-04), 같은 맥의 Homebrew 0.2.0으로는 3.87초였습니다. IdP가 MFA를 요구하면 창이 뜨고 더 오래 걸립니다.
 
 ### 로그인 URL 찾기 (Microsoft Entra ID)
 
@@ -170,7 +225,21 @@ region = ap-northeast-2
 credentials 프로필에는 saml2aws와 똑같이 `aws_access_key_id`, `aws_secret_access_key`, `aws_session_token`,
 `aws_security_token`, `x_principal_arn`, `x_security_token_expires`가 기록됩니다.
 
-`SAMLGATE_DATA_DIR`로 브라우저 프로필·기억한 롤의 위치를 바꿀 수 있습니다 (기본 `%LOCALAPPDATA%\samlgate`).
+`SAMLGATE_DATA_DIR`로 브라우저 프로필·기억한 롤의 위치를 바꿀 수 있습니다 (기본값: Windows `%LOCALAPPDATA%\samlgate`,
+macOS `~/Library/Application Support/samlgate`).
+
+## 테스트한 환경
+
+| 플랫폼 | 하드웨어 | 설치 | 브라우저 방식 | IdP | 검증 내용 |
+|---|---|---|---|---|---|
+| Windows 11 x64 | — | — | Edge | Microsoft Entra ID (SAML) | 로그인 |
+| macOS 27.2 (26B123) | MacBook Pro, Apple M4 Pro | `main` 소스 빌드(2026년 10–11월) | Edge, 11월부터 `browser_mode = auto` | Microsoft Entra ID (SAML, 내 앱 링크) | 일상적인 반복 로그인, `--force` 헤드리스 갱신 |
+| macOS 27.2 (26B123) | MacBook Pro, Apple M4 Pro | Homebrew tap 0.2.0 | Edge, `browser_mode = auto` | Microsoft Entra ID (SAML, 내 앱 링크) | 설치·삭제·재설치, `brew test`, 유효한 자격증명 재사용, `--force` 헤드리스 갱신 |
+| macOS 26.5.1 | MacBook Air, Apple M1 | Homebrew tap 0.2.0 | Edge, 대화형 | Microsoft Entra ID (SAML, 내 앱 링크) | 로그인, `~/.samlgate`의 계정 2개 |
+| macOS, Apple Silicon | MacBook Pro, Apple M4 Pro | 소스 빌드 | 네이티브 WebView | Microsoft Entra ID (SAML, 내 앱 링크) | 로그인 완료(2026-10), 합성 로컬 페이지 자동 테스트 |
+| macOS, Intel | — | `osx-x64` 소스 빌드 | — | — | 빌드, Rosetta 실행만 확인. **Intel 실기기 미검증** |
+
+CI는 GitHub의 `macos-15`(Apple Silicon)와 `windows-latest` 러너에서 빌드·테스트합니다.
 
 ## 보안
 

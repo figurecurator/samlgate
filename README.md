@@ -6,7 +6,7 @@
 
 samlgate opens your IdP sign-in (Microsoft Entra ID, Okta, Google Workspace, …) in a real browser, catches the
 SAML assertion on its way to AWS, exchanges it for temporary credentials with STS, and writes them to
-`~/.aws/credentials` in the same format saml2aws uses. The Windows release is a single ~7 MB native binary with no runtime,
+`~/.aws/credentials` in the same format saml2aws uses. The Windows release is a single ~13 MB native binary with no runtime,
 no Playwright and no browser-driver downloads.
 
 It is built for teams that:
@@ -26,13 +26,14 @@ endpoint `https://signin.aws.amazon.com/saml`. samlgate:
 3. answers it with a local "you can close this window" page and closes the browser,
 4. calls STS `AssumeRoleWithSAML` and writes the profile.
 
-Because the dedicated profile keeps the IdP's cookies, **you sign in once**; after that, renewing expired
-credentials just flashes a browser window for a few seconds. (Answer **"Yes" to "Stay signed in?"** on the first
+Because the dedicated profile keeps the IdP's cookies, later renewals can reuse your session while the IdP permits it.
+Session lifetime, MFA and organization policies can require another interactive sign-in. (Answer **"Yes" to "Stay signed in?"** on the first
 Entra sign-in — samlgate closes the browser every time, so a session-only cookie would be lost.)
 
 ## Install
 
-> **Windows and macOS.** Login has been verified on Windows 11 x64 and an Apple Silicon MacBook Pro.
+> **Windows and macOS.** Login has been verified on Windows 11 x64 and on Apple Silicon Macs (M1 and M4 Pro)
+> with Microsoft Edge (details in [Tested environments](#tested-environments)).
 > Packaged releases cover Windows x64/ARM64 and Apple Silicon macOS (via Homebrew). The macOS 14+ native WebView backend remains experimental, as does Linux support (see [Roadmap](#roadmap)).
 
 ### Windows
@@ -40,30 +41,63 @@ Entra sign-in — samlgate closes the browser every time, so a session-only cook
 Download `samlgate-<version>-win-x64.zip` (or `win-arm64`) from
 [Releases](https://github.com/figurecurator/samlgate/releases) and extract `samlgate.exe` into a folder on your `PATH`.
 
+Before adding the folder to `PATH`, run these commands inside it:
+
+```powershell
+.\samlgate.exe --version
+.\samlgate.exe login --help
+```
+
+Compare the downloaded ZIP's SHA256 (`Get-FileHash <zip-path> -Algorithm SHA256`) with the release's `SHA256SUMS`.
+Windows ARM64 is packaged; runtime and login validation on ARM64 hardware are still pending.
+WinGet and Scoop manifests are being prepared in [`packaging/windows`](packaging/windows); they are not published yet.
+
 To build from source: `dotnet publish src/Samlgate -c Release -r win-x64` (.NET 10 SDK and the Visual Studio
 "Desktop development with C++" workload for NativeAOT).
 
 **Requirements:** Microsoft Edge, which ships with Windows — or Google Chrome, Brave, Chromium or Whale.
 
-### macOS (Apple Silicon and Intel)
+### macOS
 
-Login has been confirmed on an Apple Silicon MacBook Pro.
-
-On Apple Silicon, install with [Homebrew](https://brew.sh):
+**Apple Silicon** — install with [Homebrew](https://brew.sh):
 
 ```bash
-brew install figurecurator/tap/samlgate
+brew install figurecurator/tap/samlgate     # installs samlgate and its samlgate-webview helper
+samlgate --version
 ```
 
-The source-build instructions below use the experimental native WebView backend (macOS 14+).
+`brew upgrade samlgate` updates it and `brew uninstall samlgate` removes the binaries. Uninstalling leaves
+`~/.samlgate`, `~/.aws/credentials` and the browser profiles in `~/Library/Application Support/samlgate` in place;
+delete the dedicated Chromium profile directory to clear that browser's stored session. Native WebView data lives
+outside that directory; use the named-store removal command described below before uninstalling samlgate and before
+deleting its profile identifier. If already uninstalled, reinstall samlgate first to restore the helper.
 
-With .NET 10 and Xcode command-line tools installed, build for your Mac's architecture:
+**Requirements:** Microsoft Edge or Google Chrome (or Brave, Chromium, Whale) for the default backend.
+
+**Intel Macs** — there is no packaged build. The source builds for `osx-x64` and the result starts under Rosetta on
+Apple Silicon, but no one has run it on Intel hardware yet. Reports are welcome.
+
+**From source** (either architecture) — needs the .NET 10 SDK and Xcode command-line tools:
 
 ```bash
-dotnet publish src/Samlgate -c Release -r osx-arm64 -o out
-# Use osx-x64 on an Intel Mac. Keep both output executables together.
-./out/samlgate login --browser webview
+dotnet publish src/Samlgate -c Release -r osx-arm64 -o out    # osx-x64 for Intel
+./out/samlgate --version
 ```
+
+Keep `samlgate` and `samlgate-webview` in the same folder. The helper is built universal (arm64 + x86_64), so
+cross-building `osx-x64` on Apple Silicon also produces a working helper.
+
+### Experimental: native macOS WebView
+
+`samlgate login --browser webview` signs in without Chromium. It is experimental because:
+
+- **It has less real-world coverage than Chromium.** A Microsoft Entra ID sign-in (including "Stay signed in?") has
+  completed in it on an Apple Silicon MacBook Pro, but other IdPs, MFA methods and long-running session reuse have
+  not been tested. Automated tests (CI and local) use local synthetic pages only.
+- The helper is a plain, ad-hoc-signed command-line program, not a signed and notarized app bundle. WebKit features
+  that depend on app entitlements — notably passkeys and other platform authenticators — may be unavailable, and
+  device-based Conditional Access has not been tested.
+- It is interactive only: no `--browser-mode auto` silent refresh and no `--browser-language`.
 
 `--browser webview` opens an AppKit window backed by WKWebView; no Chromium installation or DevTools port is needed. It requires macOS 14+ and a user-controlled graphical desktop. Sign in directly in the window. Save the backend with `samlgate configure --browser webview --url "<IdP sign-in URL>"`. Chromium remains the default; `--browser-path` applies only to Chromium.
 
@@ -89,6 +123,33 @@ samlgate status
 
 Already using saml2aws? Skip step 1 — samlgate reads the same account from `~/.saml2aws` when `~/.samlgate` does
 not have it.
+
+### Moving from saml2aws
+
+Keep your existing configuration and replace `saml2aws login -a work` with `samlgate login -a work`.
+The fallback reads the matching account section without modifying `~/.saml2aws`. Confirm the IdP-initiated SAML
+URL and `aws_profile`; unknown keys are ignored, and provider-specific authentication behavior is not reproduced.
+The dedicated browser profile is separate from your everyday browser, so the first sign-in is interactive.
+
+### First sign-in and later renewals
+
+1. **First `samlgate login`** opens a browser window on a dedicated profile. Sign in, complete MFA, and answer
+   **"Yes" to "Stay signed in?"**. If your IdP app has several AWS roles, pick one in the terminal; the choice is
+   remembered per account. The window closes by itself and the session is printed.
+2. **While the credentials are valid** (more than 5 minutes left), `samlgate login` only prints the session and
+   opens nothing. Measured: 0.12 s on an M4 Pro MacBook Pro (macOS 27.2, Homebrew 0.2.0 build).
+3. **When renewal is needed**, `samlgate login` opens the browser and attempts to reuse the stored IdP session.
+   With `browser_mode = auto` (Chromium only), an existing profile is tried headlessly first; if the silent attempt
+   times out, an interactive window opens for sign-in or MFA. Passwordless reuse depends on the IdP's policies.
+4. Use `--force` to sign in again early. To switch a configured role, also pass `--role <arn>`; `--force` alone
+   keeps `role_arn`. Remove `role_arn` to use the role picker when multiple roles are available. `samlgate status` (exit code `0` if valid) is
+   the check for scripts.
+
+Unattended renewal after the AWS credentials actually expire has not been verified. These measurements force a new
+IdP visit using `--force`; they do not measure the existing-credential shortcut. One measurement: `samlgate login --force` in `auto` mode
+with a stored Entra session finished headless, without a window, in 2.96 s (single run, M4 Pro MacBook Pro, Edge,
+source build of `main`, 2026-11-04) and 3.87 s with the Homebrew 0.2.0 build on the same Mac. Expect a visible
+window and longer when the IdP asks for MFA.
 
 ### Finding the sign-in URL (Microsoft Entra ID)
 
@@ -173,7 +234,21 @@ saml2aws, so you can copy `~/.saml2aws` as-is; unknown keys are ignored.
 The credentials profile contains `aws_access_key_id`, `aws_secret_access_key`, `aws_session_token`,
 `aws_security_token`, `x_principal_arn` and `x_security_token_expires`, exactly like saml2aws.
 
-`SAMLGATE_DATA_DIR` moves the browser profiles and remembered roles (default `%LOCALAPPDATA%\samlgate`).
+`SAMLGATE_DATA_DIR` moves the browser profiles and remembered roles (default `%LOCALAPPDATA%\samlgate` on Windows,
+`~/Library/Application Support/samlgate` on macOS).
+
+## Tested environments
+
+| Platform | Hardware | Install | Backend | IdP | Verified |
+|---|---|---|---|---|---|
+| Windows 11 x64 | — | — | Edge | Microsoft Entra ID (SAML) | Login |
+| macOS 27.2 (26B123) | MacBook Pro, Apple M4 Pro | Source build of `main` (Oct–Nov 2026) | Edge; `browser_mode = auto` from Nov 2026 | Microsoft Entra ID (SAML, My Apps link) | Repeated day-to-day logins; headless refresh with `--force` |
+| macOS 27.2 (26B123) | MacBook Pro, Apple M4 Pro | Homebrew tap 0.2.0 | Edge, `browser_mode = auto` | Microsoft Entra ID (SAML, My Apps link) | Install, uninstall and reinstall; `brew test`; reuse of valid credentials; headless refresh with `--force` |
+| macOS 26.5.1 | MacBook Air, Apple M1 | Homebrew tap 0.2.0 | Edge, interactive | Microsoft Entra ID (SAML, My Apps link) | Login; two accounts in `~/.samlgate` |
+| macOS, Apple Silicon | MacBook Pro, Apple M4 Pro | Source build | Native WebView | Microsoft Entra ID (SAML, My Apps link) | Sign-in completed (2026-10); automated tests with local synthetic pages |
+| macOS, Intel | — | `osx-x64` source build | — | — | Builds; starts under Rosetta only. **Not run on Intel hardware.** |
+
+CI builds and tests on GitHub's `macos-15` (Apple Silicon) and `windows-latest` runners.
 
 ## Security notes
 

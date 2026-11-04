@@ -1,0 +1,31 @@
+{
+    "version": "0.2.0",
+    "description": "AWS credentials from a browser-based SAML sign-in using a dedicated persistent browser profile.",
+    "homepage": "https://github.com/figurecurator/samlgate",
+    "license": "MIT",
+    "architecture": {
+        "64bit": {
+            "url": "https://github.com/figurecurator/samlgate/releases/download/v0.2.0/samlgate-v0.2.0-win-x64.zip",
+            "hash": "c82dce3efa75ee9d365e440003642794a7d72e5abe602cb9b738f03f0146faec"
+        },
+        "arm64": {
+            "url": "https://github.com/figurecurator/samlgate/releases/download/v0.2.0/samlgate-v0.2.0-win-arm64.zip",
+            "hash": "25df344a2aa1cb2de96a283e0f965c8a23c71dfb7fbb40e8793534b218b60079"
+        }
+    },
+    "bin": "samlgate.exe",
+    "checkver": "github",
+    "autoupdate": {
+        "architecture": {
+            "64bit": {
+                "url": "https://github.com/figurecurator/samlgate/releases/download/v$version/samlgate-v$version-win-x64.zip"
+            },
+            "arm64": {
+                "url": "https://github.com/figurecurator/samlgate/releases/download/v$version/samlgate-v$version-win-arm64.zip"
+            }
+        },
+        "hash": {
+            "url": "$baseurl/SHA256SUMS"
+        }
+    }
+}

@@ -13,22 +13,31 @@
     <PackageReference Include="AWSSDK.SecurityToken" Version="4.0.101" />
   </ItemGroup>
 
+  <!--
+    Samlgate.Core is built without the app's RuntimeIdentifier, so the helper cannot follow the publish RID.
+    Build it universal (arm64 + x86_64) instead: osx-arm64 and osx-x64 outputs, including cross builds,
+    always get a helper that runs on the target Mac.
+  -->
   <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('OSX')) and ('$(RuntimeIdentifier)' == '' or $(RuntimeIdentifier.StartsWith('osx-')))">
     <BuildMacWebView>true</BuildMacWebView>
-    <MacWebViewArchitecture Condition="'$(RuntimeIdentifier)' == 'osx-x64'">x86_64</MacWebViewArchitecture>
-    <MacWebViewArchitecture Condition="'$(RuntimeIdentifier)' == 'osx-arm64'">arm64</MacWebViewArchitecture>
-    <MacWebViewArchitecture Condition="'$(MacWebViewArchitecture)' == ''">$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString().ToLowerInvariant().Replace('x64', 'x86_64'))</MacWebViewArchitecture>
+    <MacWebViewSource>$(MSBuildProjectDirectory)/../../native/macos/SamlgateWebView.swift</MacWebViewSource>
   </PropertyGroup>
 
+  <!-- IntermediateOutputPath is only set after the project body, so use it in items and targets, not properties. -->
   <ItemGroup Condition="'$(BuildMacWebView)' == 'true'">
-    <Content Include="$(IntermediateOutputPath)native/samlgate-webview" Link="samlgate-webview"
+    <Content Include="$(IntermediateOutputPath)native/universal/samlgate-webview" Link="samlgate-webview"
              CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <Target Name="BuildMacWebView" BeforeTargets="PrepareForBuild" Condition="'$(BuildMacWebView)' == 'true'"
-          Inputs="$(MSBuildProjectDirectory)/../../native/macos/SamlgateWebView.swift"
-          Outputs="$(IntermediateOutputPath)native/samlgate-webview">
-    <MakeDir Directories="$(IntermediateOutputPath)native" />
-    <Exec Command="xcrun swiftc -parse-as-library -O -warnings-as-errors -target $(MacWebViewArchitecture)-apple-macosx14.0 -framework AppKit -framework WebKit &quot;$(MSBuildProjectDirectory)/../../native/macos/SamlgateWebView.swift&quot; -o &quot;$(IntermediateOutputPath)native/samlgate-webview&quot;" />
+          Inputs="$(MacWebViewSource)" Outputs="$(IntermediateOutputPath)native/universal/samlgate-webview">
+    <PropertyGroup>
+      <MacWebViewDirectory>$(IntermediateOutputPath)native/universal/</MacWebViewDirectory>
+      <MacWebViewSwiftc>xcrun swiftc -parse-as-library -O -warnings-as-errors -framework AppKit -framework WebKit &quot;$(MacWebViewSource)&quot;</MacWebViewSwiftc>
+    </PropertyGroup>
+    <MakeDir Directories="$(MacWebViewDirectory)" />
+    <Exec Command="$(MacWebViewSwiftc) -target arm64-apple-macosx14.0 -o &quot;$(MacWebViewDirectory)samlgate-webview-arm64&quot;" />
+    <Exec Command="$(MacWebViewSwiftc) -target x86_64-apple-macosx14.0 -o &quot;$(MacWebViewDirectory)samlgate-webview-x86_64&quot;" />
+    <Exec Command="xcrun lipo -create &quot;$(MacWebViewDirectory)samlgate-webview-arm64&quot; &quot;$(MacWebViewDirectory)samlgate-webview-x86_64&quot; -output &quot;$(MacWebViewDirectory)samlgate-webview&quot;" />
   </Target>
 </Project>

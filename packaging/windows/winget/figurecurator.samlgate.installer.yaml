@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.12.0.schema.json
+PackageIdentifier: figurecurator.samlgate
+PackageVersion: 0.2.0
+InstallerType: zip
+NestedInstallerType: portable
+NestedInstallerFiles:
+  - RelativeFilePath: samlgate.exe
+    PortableCommandAlias: samlgate
+ReleaseDate: 2026-11-04
+Installers:
+  - Architecture: x64
+    InstallerUrl: https://github.com/figurecurator/samlgate/releases/download/v0.2.0/samlgate-v0.2.0-win-x64.zip
+    InstallerSha256: C82DCE3EFA75EE9D365E440003642794A7D72E5ABE602CB9B738F03F0146FAEC
+  - Architecture: arm64
+    InstallerUrl: https://github.com/figurecurator/samlgate/releases/download/v0.2.0/samlgate-v0.2.0-win-arm64.zip
+    InstallerSha256: 25DF344A2AA1CB2DE96A283E0F965C8A23C71DFB7FBB40E8793534B218B60079
+ManifestType: installer
+ManifestVersion: 1.12.0

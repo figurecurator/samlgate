@@ -17,6 +17,9 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
+      - name: Validate Windows installer manifest checks
+        shell: pwsh
+        run: ./packaging/windows/Test-WinGetManifest.ps1
       - name: Test (includes a headless-browser capture test with the preinstalled Edge)
         run: dotnet test samlgate.slnx -c Release --logger "console;verbosity=normal"
       - name: NativeAOT build stays warning-free
