@@ -27,7 +27,7 @@ Verified on Windows x64: WinGet schema validation, installed Scoop schema valida
 
 ## Before publishing
 
-1. Confirm package ID availability, publisher display name and the target self-hosted Scoop bucket.
+1. Use `Rainbowsoft` as the publisher display name, matching the source author metadata. Confirm package ID availability and the target self-hosted Scoop bucket.
 2. Test package-manager install/uninstall and update behavior. Schema validation alone does not exercise installation. Keep credentials and browser profiles on uninstall.
 3. Test on an actual Windows ARM64 machine before claiming runtime or login validation there.
 4. For a new release, update every version, URL and hash. These manifests reference unmodified v0.2.0 artifacts; the Edge compatibility-layer relaunch fix in current source needs a new release before distribution. Never substitute local build hashes under the old release version.
