@@ -4,6 +4,8 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+# Expected native exit codes are checked explicitly; do not inherit a caller's terminating-error preference.
+$PSNativeCommandUseErrorActionPreference = $false
 $artifactRoot = (Resolve-Path -LiteralPath $ArtifactsDirectory).Path
 $manifest = Get-Content (Join-Path $PSScriptRoot 'scoop/samlgate.json') -Raw | ConvertFrom-Json
 $checksums = Get-Content (Join-Path $artifactRoot 'SHA256SUMS')
@@ -21,7 +23,13 @@ foreach ($item in @(
     if ($hash -ne $entry.hash) { throw "Manifest checksum mismatch: $fileName" }
     if ($checksums -notcontains "$hash  $fileName") { throw "Release checksum mismatch: $fileName" }
     $installer = Get-Content (Join-Path $PSScriptRoot 'winget/figurecurator.samlgate.installer.yaml') -Raw
-    if (-not $installer.Contains($entry.url) -or -not $installer.Contains($hash.ToUpperInvariant())) {
+    # Read the simple installer-entry layout used by our generated manifest. Fail closed if it changes.
+    $architecture = $item.Rid.Substring(4)
+    $entries = [regex]::Matches($installer, '(?m)^  - Architecture: (?<arch>\S+)\r?\n    InstallerUrl: (?<url>\S+)\r?\n    InstallerSha256: (?<hash>[A-Fa-f0-9]{64})\r?$')
+    $matching = @($entries | Where-Object { $_.Groups['arch'].Value -eq $architecture })
+    if ($entries.Count -ne 2 -or $matching.Count -ne 1 -or
+        $matching[0].Groups['url'].Value -cne $entry.url -or
+        $matching[0].Groups['hash'].Value -ine $hash) {
         throw "WinGet URL/checksum mismatch: $fileName"
     }
 
@@ -66,8 +74,11 @@ try {
     if ($LASTEXITCODE -ne 0 -or ($helpText -join "`n") -notmatch '--browser-mode') { throw 'Help smoke test failed' }
     & $exe configure --idp-account packaging-smoke --url https://example.invalid/saml --browser edge --browser-mode auto
     if ($LASTEXITCODE -ne 0) { throw 'Synthetic configure smoke test failed' }
-    & $exe status --idp-account packaging-smoke
-    if ($LASTEXITCODE -ne 1) { throw 'Missing credentials should make status exit 1' }
+    $statusOutput = & $exe status --idp-account packaging-smoke
+    if ($LASTEXITCODE -ne 1 -or ($statusOutput -join "`n") -notmatch 'not signed in') {
+        throw 'Status should report not signed in with exit 1'
+    }
+    Write-Output $statusOutput
     if (Test-Path -LiteralPath $env:AWS_SHARED_CREDENTIALS_FILE) { throw 'Smoke test unexpectedly wrote credentials' }
     Write-Output "PASS $rid runtime: version, login help, isolated configure, unsigned-in status (expected exit 1)"
 } finally {

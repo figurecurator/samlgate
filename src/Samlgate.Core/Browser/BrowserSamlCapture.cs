@@ -87,6 +87,7 @@ public static class BrowserSamlCapture
         }
     }
 
+    /// <summary>Launches the dedicated Chromium profile and retains process ownership, including on Windows Edge.</summary>
     private static Process StartBrowser(CaptureOptions options)
     {
         var language = BrowserPreferences.ValidateLanguage(options.Language);

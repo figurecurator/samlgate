@@ -69,7 +69,8 @@ samlgate --version
 `brew upgrade samlgate` updates it and `brew uninstall samlgate` removes the binaries. Uninstalling leaves
 `~/.samlgate`, `~/.aws/credentials` and the browser profiles in `~/Library/Application Support/samlgate` in place;
 delete the dedicated Chromium profile directory to clear that browser's stored session. Native WebView data lives
-outside that directory; use the named-store removal command described below before deleting its profile identifier.
+outside that directory; use the named-store removal command described below before uninstalling samlgate and before
+deleting its profile identifier. If already uninstalled, reinstall samlgate first to restore the helper.
 
 **Requirements:** Microsoft Edge or Google Chrome (or Brave, Chromium, Whale) for the default backend.
 
@@ -140,7 +141,8 @@ The dedicated browser profile is separate from your everyday browser, so the fir
 3. **When renewal is needed**, `samlgate login` opens the browser and attempts to reuse the stored IdP session.
    With `browser_mode = auto` (Chromium only), an existing profile is tried headlessly first; if the silent attempt
    times out, an interactive window opens for sign-in or MFA. Passwordless reuse depends on the IdP's policies.
-4. Use `--force` to sign in again early, for example to switch roles. `samlgate status` (exit code `0` if valid) is
+4. Use `--force` to sign in again early. To switch a configured role, also pass `--role <arn>`; `--force` alone
+   keeps `role_arn`. Remove `role_arn` to use the role picker when multiple roles are available. `samlgate status` (exit code `0` if valid) is
    the check for scripts.
 
 Unattended renewal after the AWS credentials actually expire has not been verified. These measurements force a new

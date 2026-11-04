@@ -25,6 +25,13 @@ only needs `libexec` replaced with `bin` for the helper check) and exercises `co
 
 ## homebrew-core: status of the draft
 
+The `fetch` method restores NuGet dependencies during Homebrew's network-enabled fetch phase.
+Homebrew then runs `install` in the same build directory without network access; the draft uses
+`publish --no-restore` there. `deny_network_access!` does not prevent the fetch hook from downloading dependencies.
+See the [Formula fetch API](https://docs.brew.sh/rubydoc/Formula.html#fetch-instance_method) and
+[Homebrew's cyclonedx-cli formula](https://github.com/Homebrew/homebrew-core/blob/main/Formula/c/cyclonedx-cli.rb)
+for this pattern. Full sandboxed installation remains unverified as noted below.
+
 Verified locally (macOS 27.2, Apple M4 Pro, Homebrew 7.0.12, Homebrew `dotnet` 10.0.403):
 
 - `dotnet restore` (the formula's `fetch`) followed by `dotnet publish --no-restore` from a clean copy of the source

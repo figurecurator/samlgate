@@ -68,7 +68,8 @@ samlgate --version
 
 업데이트는 `brew upgrade samlgate`, 삭제는 `brew uninstall samlgate`입니다. 삭제해도 `~/.samlgate`, `~/.aws/credentials`,
 `~/Library/Application Support/samlgate`의 브라우저 프로필은 남습니다. Chromium의 저장된 세션은 해당 전용 프로필 디렉터리를 지워 초기화합니다.
-네이티브 WebView 데이터는 그 디렉터리 밖에 있으므로, 아래 설명의 저장소 삭제 명령을 실행한 뒤 프로필 식별자를 지우세요.
+네이티브 WebView 데이터는 그 디렉터리 밖에 있으므로, samlgate를 제거하기 전에 아래 설명의 저장소 삭제 명령을 실행한 뒤 프로필 식별자를 지우세요.
+이미 제거했다면 samlgate를 다시 설치해 헬퍼를 복원한 뒤 실행하세요.
 
 **요구 사항:** 기본 방식에는 Microsoft Edge나 Google Chrome(또는 Brave, Chromium, Whale)이 필요합니다.
 
@@ -136,7 +137,8 @@ samlgate status
 3. **갱신이 필요하면** `samlgate login`은 브라우저를 열어 저장된 IdP 세션 재사용을 시도합니다.
    `browser_mode = auto`(Chromium 전용)이고 기존 프로필이 있으면 먼저 헤드리스로 시도하며, 제한 시간이 지나면 로그인·MFA를 위한 창을 엽니다.
    비밀번호 없이 재사용할 수 있는지는 IdP 정책에 따라 달라집니다.
-4. 롤을 바꾸는 등 일찍 다시 로그인하려면 `--force`를 쓰세요. 스크립트에서는 `samlgate status`(유효하면 종료 코드 `0`)로 확인합니다.
+4. 일찍 다시 로그인하려면 `--force`를 쓰세요. 설정된 롤을 바꾸려면 `--role <arn>`도 지정해야 합니다. `--force`만으로는 `role_arn`이 유지됩니다.
+   여러 롤 중 선택하려면 `role_arn` 설정을 제거하세요. 스크립트에서는 `samlgate status`(유효하면 종료 코드 `0`)로 확인합니다.
 
 AWS 자격증명이 실제 만료된 뒤의 무인 갱신은 아직 검증하지 않았습니다. 아래 수치는 `--force`로 IdP를 다시 방문한 결과이며,
 유효한 기존 AWS 자격증명을 바로 재사용하는 경로의 측정값은 아닙니다. 측정 1회: 저장된 Entra 세션이 있는 상태에서 `auto` 모드로 `samlgate login --force`를 실행하니
