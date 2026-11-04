@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  # Packaged releases remain Windows-only; macOS WebView is experimental.
+  # Releases ship Windows and Apple Silicon macOS (Homebrew); macOS WebView is experimental.
   test:
     runs-on: windows-latest
     steps:

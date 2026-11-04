@@ -33,12 +33,12 @@ Entra sign-in — samlgate closes the browser every time, so a session-only cook
 ## Install
 
 > **Windows and macOS.** Login has been verified on Windows 11 x64 and an Apple Silicon MacBook Pro.
-> Packaged releases are currently Windows x64 and ARM64 only; macOS users can build from source as described below. The macOS 14+ native WebView backend remains experimental, as does Linux support (see [Roadmap](#roadmap)).
+> Packaged releases cover Windows x64/ARM64 and Apple Silicon macOS (via Homebrew). The macOS 14+ native WebView backend remains experimental, as does Linux support (see [Roadmap](#roadmap)).
 
 ### Windows
 
 Download `samlgate-<version>-win-x64.zip` (or `win-arm64`) from
-[Releases](https://github.com/platpharm/samlgate/releases) and extract `samlgate.exe` into a folder on your `PATH`.
+[Releases](https://github.com/figurecurator/samlgate/releases) and extract `samlgate.exe` into a folder on your `PATH`.
 
 To build from source: `dotnet publish src/Samlgate -c Release -r win-x64` (.NET 10 SDK and the Visual Studio
 "Desktop development with C++" workload for NativeAOT).
@@ -48,6 +48,13 @@ To build from source: `dotnet publish src/Samlgate -c Release -r win-x64` (.NET 
 ### macOS (Apple Silicon and Intel)
 
 Login has been confirmed on an Apple Silicon MacBook Pro.
+
+On Apple Silicon, install with [Homebrew](https://brew.sh):
+
+```bash
+brew install figurecurator/tap/samlgate
+```
+
 The source-build instructions below use the experimental native WebView backend (macOS 14+).
 
 With .NET 10 and Xcode command-line tools installed, build for your Mac's architecture:

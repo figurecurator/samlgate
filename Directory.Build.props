@@ -9,7 +9,7 @@
     <!-- The version option prints just the version, without the +commit suffix -->
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <Authors>Lumenterra Co., Ltd.</Authors>
-    <RepositoryUrl>https://github.com/platpharm/samlgate</RepositoryUrl>
+    <RepositoryUrl>https://github.com/figurecurator/samlgate</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 </Project>

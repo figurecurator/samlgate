@@ -33,11 +33,11 @@ samlgate는 매번 브라우저를 닫기 때문에 세션 쿠키만 있으면 �
 ## 설치
 
 > **Windows와 macOS에서 사용할 수 있습니다.** Windows 11 x64와 Apple Silicon MacBook Pro에서 로그인에 성공했습니다.
-> 현재 배포 바이너리는 Windows x64·ARM64용이며, macOS는 아래 소스 빌드 안내를 따릅니다. macOS 14 이상용 네이티브 WebView와 Linux 지원은 아직 실험 단계입니다([로드맵](#로드맵) 참고).
+> 배포 바이너리는 Windows x64·ARM64와 Apple Silicon macOS(Homebrew)용입니다. macOS 14 이상용 네이티브 WebView와 Linux 지원은 아직 실험 단계입니다([로드맵](#로드맵) 참고).
 
 ### Windows
 
-[Releases](https://github.com/platpharm/samlgate/releases)에서 `samlgate-<버전>-win-x64.zip`(또는 `win-arm64`)을 받아
+[Releases](https://github.com/figurecurator/samlgate/releases)에서 `samlgate-<버전>-win-x64.zip`(또는 `win-arm64`)을 받아
 `samlgate.exe`를 `PATH`에 있는 폴더에 풉니다.
 
 소스 빌드: `dotnet publish src/Samlgate -c Release -r win-x64` (.NET 10 SDK, NativeAOT용 Visual Studio
@@ -48,6 +48,13 @@ samlgate는 매번 브라우저를 닫기 때문에 세션 쿠키만 있으면 �
 ### macOS (Apple Silicon·Intel)
 
 Apple Silicon MacBook Pro에서 실제 로그인 성공을 확인했습니다.
+
+Apple Silicon Mac은 [Homebrew](https://brew.sh)로 설치할 수 있습니다.
+
+```bash
+brew install figurecurator/tap/samlgate
+```
+
 아래 소스 빌드 예시는 실험 기능인 네이티브 WebView(macOS 14 이상)를 사용합니다.
 
 .NET 10 SDK와 Xcode 명령줄 도구를 설치한 뒤 Mac의 아키텍처에 맞게 빌드합니다.
