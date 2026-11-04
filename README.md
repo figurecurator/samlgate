@@ -6,7 +6,7 @@
 
 samlgate opens your IdP sign-in (Microsoft Entra ID, Okta, Google Workspace, …) in a real browser, catches the
 SAML assertion on its way to AWS, exchanges it for temporary credentials with STS, and writes them to
-`~/.aws/credentials` in the same format saml2aws uses. The Windows release is a single ~7 MB native binary with no runtime,
+`~/.aws/credentials` in the same format saml2aws uses. The Windows release is a single ~13 MB native binary with no runtime,
 no Playwright and no browser-driver downloads.
 
 It is built for teams that:
@@ -26,8 +26,8 @@ endpoint `https://signin.aws.amazon.com/saml`. samlgate:
 3. answers it with a local "you can close this window" page and closes the browser,
 4. calls STS `AssumeRoleWithSAML` and writes the profile.
 
-Because the dedicated profile keeps the IdP's cookies, **you sign in once**; after that, renewing expired
-credentials just flashes a browser window for a few seconds. (Answer **"Yes" to "Stay signed in?"** on the first
+Because the dedicated profile keeps the IdP's cookies, later renewals can reuse your session while the IdP permits it.
+Session lifetime, MFA and organization policies can require another interactive sign-in. (Answer **"Yes" to "Stay signed in?"** on the first
 Entra sign-in — samlgate closes the browser every time, so a session-only cookie would be lost.)
 
 ## Install
@@ -40,6 +40,17 @@ Entra sign-in — samlgate closes the browser every time, so a session-only cook
 
 Download `samlgate-<version>-win-x64.zip` (or `win-arm64`) from
 [Releases](https://github.com/figurecurator/samlgate/releases) and extract `samlgate.exe` into a folder on your `PATH`.
+
+Before adding the folder to `PATH`, run these commands inside it:
+
+```powershell
+.\samlgate.exe --version
+.\samlgate.exe login --help
+```
+
+Compare the downloaded ZIP's SHA256 (`Get-FileHash <zip-path> -Algorithm SHA256`) with the release's `SHA256SUMS`.
+Windows ARM64 is packaged; runtime and login validation on ARM64 hardware are still pending.
+WinGet and Scoop manifests are being prepared in [`packaging/windows`](packaging/windows); they are not published yet.
 
 To build from source: `dotnet publish src/Samlgate -c Release -r win-x64` (.NET 10 SDK and the Visual Studio
 "Desktop development with C++" workload for NativeAOT).
@@ -57,7 +68,8 @@ samlgate --version
 
 `brew upgrade samlgate` updates it and `brew uninstall samlgate` removes the binaries. Uninstalling leaves
 `~/.samlgate`, `~/.aws/credentials` and the browser profiles in `~/Library/Application Support/samlgate` in place;
-delete that folder to sign out of the dedicated browser profiles.
+delete the dedicated Chromium profile directory to clear that browser's stored session. Native WebView data lives
+outside that directory; use the named-store removal command described below before deleting its profile identifier.
 
 **Requirements:** Microsoft Edge or Google Chrome (or Brave, Chromium, Whale) for the default backend.
 
@@ -111,6 +123,13 @@ samlgate status
 Already using saml2aws? Skip step 1 — samlgate reads the same account from `~/.saml2aws` when `~/.samlgate` does
 not have it.
 
+### Moving from saml2aws
+
+Keep your existing configuration and replace `saml2aws login -a work` with `samlgate login -a work`.
+The fallback reads the matching account section without modifying `~/.saml2aws`. Confirm the IdP-initiated SAML
+URL and `aws_profile`; unknown keys are ignored, and provider-specific authentication behavior is not reproduced.
+The dedicated browser profile is separate from your everyday browser, so the first sign-in is interactive.
+
 ### First sign-in and later renewals
 
 1. **First `samlgate login`** opens a browser window on a dedicated profile. Sign in, complete MFA, and answer
@@ -118,13 +137,14 @@ not have it.
    remembered per account. The window closes by itself and the session is printed.
 2. **While the credentials are valid** (more than 5 minutes left), `samlgate login` only prints the session and
    opens nothing. Measured: 0.12 s on an M4 Pro MacBook Pro (macOS 27.2, Homebrew 0.2.0 build).
-3. **After they expire**, `samlgate login` reuses the stored IdP session: the browser window opens, the IdP
-   finishes without a password, and it closes. With `browser_mode = auto` (Chromium only) that attempt is headless
-   first. If the IdP asks for MFA again, the window stays open for you to finish.
+3. **When renewal is needed**, `samlgate login` opens the browser and attempts to reuse the stored IdP session.
+   With `browser_mode = auto` (Chromium only), an existing profile is tried headlessly first; if the silent attempt
+   times out, an interactive window opens for sign-in or MFA. Passwordless reuse depends on the IdP's policies.
 4. Use `--force` to sign in again early, for example to switch roles. `samlgate status` (exit code `0` if valid) is
    the check for scripts.
 
-Step 3 depends on the IdP, its policies and the network. One measurement: `samlgate login --force` in `auto` mode
+Unattended renewal after the AWS credentials actually expire has not been verified. These measurements force a new
+IdP visit using `--force`; they do not measure the existing-credential shortcut. One measurement: `samlgate login --force` in `auto` mode
 with a stored Entra session finished headless, without a window, in 2.96 s (single run, M4 Pro MacBook Pro, Edge,
 source build of `main`, 2026-11-04) and 3.87 s with the Homebrew 0.2.0 build on the same Mac. Expect a visible
 window and longer when the IdP asks for MFA.

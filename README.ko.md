@@ -8,7 +8,7 @@
 
 samlgate는 IdP 로그인(Microsoft Entra ID, Okta, Google Workspace 등)을 실제 브라우저에서 진행시키고,
 AWS로 향하는 SAML assertion을 중간에서 받아 STS로 임시 자격증명을 발급받은 뒤 `~/.aws/credentials`에
-saml2aws와 같은 형식으로 기록합니다. Windows 배포본은 런타임·Playwright·브라우저 드라이버 다운로드 없는 약 7MB 단일 네이티브 바이너리입니다.
+saml2aws와 같은 형식으로 기록합니다. Windows 배포본은 런타임·Playwright·브라우저 드라이버 다운로드 없는 약 13MB 단일 네이티브 바이너리입니다.
 
 이런 조직을 위해 만들었습니다.
 
@@ -26,8 +26,8 @@ SAML에는 `localhost` 콜백이 없습니다. 로그인이 끝나면 IdP가 브
 3. "창을 닫아도 됩니다" 로컬 페이지로 응답한 뒤 브라우저를 닫고,
 4. STS `AssumeRoleWithSAML`을 호출해 프로필을 기록합니다.
 
-전용 프로필에 IdP 쿠키가 남으므로 **로그인은 처음 한 번만** 하면 됩니다. 이후 자격증명이 만료되면 브라우저 창이
-몇 초 떴다 닫히는 정도로 갱신됩니다. (첫 Entra 로그인 때 **"로그인 상태를 유지하시겠습니까?"에 "예"**를 누르세요 —
+전용 프로필에 IdP 쿠키가 남으므로 IdP가 허용하는 동안 이후 갱신에서 세션을 재사용할 수 있습니다.
+세션 만료·MFA·조직 정책에 따라 다시 대화형 로그인이 필요할 수 있습니다. (첫 Entra 로그인 때 **"로그인 상태를 유지하시겠습니까?"에 "예"**를 누르세요 —
 samlgate는 매번 브라우저를 닫기 때문에 세션 쿠키만 있으면 사라집니다.)
 
 ## 설치
@@ -40,6 +40,17 @@ samlgate는 매번 브라우저를 닫기 때문에 세션 쿠키만 있으면 �
 
 [Releases](https://github.com/figurecurator/samlgate/releases)에서 `samlgate-<버전>-win-x64.zip`(또는 `win-arm64`)을 받아
 `samlgate.exe`를 `PATH`에 있는 폴더에 풉니다.
+
+`PATH`에 추가하기 전에 압축을 푼 폴더에서 확인합니다.
+
+```powershell
+.\samlgate.exe --version
+.\samlgate.exe login --help
+```
+
+다운로드한 ZIP의 SHA256(`Get-FileHash <zip-path> -Algorithm SHA256`)을 릴리스의 `SHA256SUMS`와 대조합니다.
+Windows ARM64는 패키지를 제공하지만 ARM64 실기기 실행·로그인은 아직 미검증입니다.
+WinGet·Scoop manifest는 [`packaging/windows`](packaging/windows)에서 준비 중이며 아직 공개 배포하지 않았습니다.
 
 소스 빌드: `dotnet publish src/Samlgate -c Release -r win-x64` (.NET 10 SDK, NativeAOT용 Visual Studio
 "C++를 사용한 데스크톱 개발" 워크로드 필요)
@@ -56,7 +67,8 @@ samlgate --version
 ```
 
 업데이트는 `brew upgrade samlgate`, 삭제는 `brew uninstall samlgate`입니다. 삭제해도 `~/.samlgate`, `~/.aws/credentials`,
-`~/Library/Application Support/samlgate`의 브라우저 프로필은 남습니다. 전용 브라우저 프로필에서 로그아웃하려면 그 폴더를 지우세요.
+`~/Library/Application Support/samlgate`의 브라우저 프로필은 남습니다. Chromium의 저장된 세션은 해당 전용 프로필 디렉터리를 지워 초기화합니다.
+네이티브 WebView 데이터는 그 디렉터리 밖에 있으므로, 아래 설명의 저장소 삭제 명령을 실행한 뒤 프로필 식별자를 지우세요.
 
 **요구 사항:** 기본 방식에는 Microsoft Edge나 Google Chrome(또는 Brave, Chromium, Whale)이 필요합니다.
 
@@ -107,6 +119,13 @@ samlgate status
 
 이미 saml2aws를 쓰고 있다면 1단계는 건너뛰세요 — `~/.samlgate`에 없는 계정은 `~/.saml2aws`에서 읽습니다.
 
+### saml2aws에서 옮기기
+
+기존 설정을 그대로 두고 `saml2aws login -a work`를 `samlgate login -a work`로 바꿉니다.
+같은 계정 절을 읽으며 `~/.saml2aws` 원본은 수정하지 않습니다. IdP 시작 SAML URL과 `aws_profile`을 확인하세요.
+사용하지 않는 키는 무시하며 provider별 인증 동작을 그대로 재현하지는 않습니다.
+전용 브라우저 프로필은 일상 브라우저와 별개이므로 첫 로그인은 대화형으로 진행합니다.
+
 ### 첫 로그인과 이후 갱신
 
 1. **처음 `samlgate login`** 하면 전용 프로필로 브라우저 창이 열립니다. 로그인과 MFA를 마치고
@@ -114,11 +133,13 @@ samlgate status
    창은 저절로 닫히고 세션 정보가 출력됩니다.
 2. **자격증명이 유효한 동안**(5분 넘게 남음) `samlgate login`은 세션 정보만 출력하고 아무 창도 열지 않습니다.
    측정값: M4 Pro MacBook Pro(macOS 27.2, Homebrew 0.2.0)에서 0.12초.
-3. **만료된 뒤** `samlgate login`은 저장된 IdP 세션을 재사용합니다. 브라우저 창이 열리고 비밀번호 없이 IdP가 끝나면 닫힙니다.
-   `browser_mode = auto`(Chromium 전용)면 먼저 헤드리스로 시도합니다. IdP가 MFA를 다시 요구하면 창이 열린 채로 기다립니다.
+3. **갱신이 필요하면** `samlgate login`은 브라우저를 열어 저장된 IdP 세션 재사용을 시도합니다.
+   `browser_mode = auto`(Chromium 전용)이고 기존 프로필이 있으면 먼저 헤드리스로 시도하며, 제한 시간이 지나면 로그인·MFA를 위한 창을 엽니다.
+   비밀번호 없이 재사용할 수 있는지는 IdP 정책에 따라 달라집니다.
 4. 롤을 바꾸는 등 일찍 다시 로그인하려면 `--force`를 쓰세요. 스크립트에서는 `samlgate status`(유효하면 종료 코드 `0`)로 확인합니다.
 
-3단계 시간은 IdP·정책·네트워크에 따라 다릅니다. 측정 1회: 저장된 Entra 세션이 있는 상태에서 `auto` 모드로 `samlgate login --force`를 실행하니
+AWS 자격증명이 실제 만료된 뒤의 무인 갱신은 아직 검증하지 않았습니다. 아래 수치는 `--force`로 IdP를 다시 방문한 결과이며,
+유효한 기존 AWS 자격증명을 바로 재사용하는 경로의 측정값은 아닙니다. 측정 1회: 저장된 Entra 세션이 있는 상태에서 `auto` 모드로 `samlgate login --force`를 실행하니
 창 없이 헤드리스로 2.96초에 끝났습니다(M4 Pro MacBook Pro, Edge, `main` 소스 빌드, 2026-11-04), 같은 맥의 Homebrew 0.2.0으로는 3.87초였습니다. IdP가 MFA를 요구하면 창이 뜨고 더 오래 걸립니다.
 
 ### 로그인 URL 찾기 (Microsoft Entra ID)
