@@ -126,7 +126,8 @@ not have it.
 
 Step 3 depends on the IdP, its policies and the network. One measurement: `samlgate login --force` in `auto` mode
 with a stored Entra session finished headless, without a window, in 2.96 s (single run, M4 Pro MacBook Pro, Edge,
-source build of `main`, 2026-11-04). Expect a visible window and longer when the IdP asks for MFA.
+source build of `main`, 2026-11-04) and 3.87 s with the Homebrew 0.2.0 build on the same Mac. Expect a visible
+window and longer when the IdP asks for MFA.
 
 ### Finding the sign-in URL (Microsoft Entra ID)
 
@@ -220,7 +221,7 @@ The credentials profile contains `aws_access_key_id`, `aws_secret_access_key`, `
 |---|---|---|---|---|---|
 | Windows 11 x64 | — | — | Edge | Microsoft Entra ID (SAML) | Login |
 | macOS 27.2 (26B123) | MacBook Pro, Apple M4 Pro | Source build of `main` (Oct–Nov 2026) | Edge; `browser_mode = auto` from Nov 2026 | Microsoft Entra ID (SAML, My Apps link) | Repeated day-to-day logins; headless refresh with `--force` |
-| macOS 27.2 (26B123) | MacBook Pro, Apple M4 Pro | Homebrew tap 0.2.0 | Edge | — | Install, uninstall and reinstall; `brew test`; reuse of valid credentials (no browser login) |
+| macOS 27.2 (26B123) | MacBook Pro, Apple M4 Pro | Homebrew tap 0.2.0 | Edge, `browser_mode = auto` | Microsoft Entra ID (SAML, My Apps link) | Install, uninstall and reinstall; `brew test`; reuse of valid credentials; headless refresh with `--force` |
 | macOS 26.5.1 | MacBook Air, Apple M1 | Homebrew tap 0.2.0 | Edge, interactive | Microsoft Entra ID (SAML, My Apps link) | Login; two accounts in `~/.samlgate` |
 | macOS, Apple Silicon | MacBook Pro, Apple M4 Pro | Source build | Native WebView | Microsoft Entra ID (SAML, My Apps link) | Sign-in completed (2026-10); automated tests with local synthetic pages |
 | macOS, Intel | — | `osx-x64` source build | — | — | Builds; starts under Rosetta only. **Not run on Intel hardware.** |

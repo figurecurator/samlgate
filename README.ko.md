@@ -119,7 +119,7 @@ samlgate status
 4. 롤을 바꾸는 등 일찍 다시 로그인하려면 `--force`를 쓰세요. 스크립트에서는 `samlgate status`(유효하면 종료 코드 `0`)로 확인합니다.
 
 3단계 시간은 IdP·정책·네트워크에 따라 다릅니다. 측정 1회: 저장된 Entra 세션이 있는 상태에서 `auto` 모드로 `samlgate login --force`를 실행하니
-창 없이 헤드리스로 2.96초에 끝났습니다(M4 Pro MacBook Pro, Edge, `main` 소스 빌드, 2026-11-04). IdP가 MFA를 요구하면 창이 뜨고 더 오래 걸립니다.
+창 없이 헤드리스로 2.96초에 끝났습니다(M4 Pro MacBook Pro, Edge, `main` 소스 빌드, 2026-11-04), 같은 맥의 Homebrew 0.2.0으로는 3.87초였습니다. IdP가 MFA를 요구하면 창이 뜨고 더 오래 걸립니다.
 
 ### 로그인 URL 찾기 (Microsoft Entra ID)
 
@@ -211,7 +211,7 @@ macOS `~/Library/Application Support/samlgate`).
 |---|---|---|---|---|---|
 | Windows 11 x64 | — | — | Edge | Microsoft Entra ID (SAML) | 로그인 |
 | macOS 27.2 (26B123) | MacBook Pro, Apple M4 Pro | `main` 소스 빌드(2026년 10–11월) | Edge, 11월부터 `browser_mode = auto` | Microsoft Entra ID (SAML, 내 앱 링크) | 일상적인 반복 로그인, `--force` 헤드리스 갱신 |
-| macOS 27.2 (26B123) | MacBook Pro, Apple M4 Pro | Homebrew tap 0.2.0 | Edge | — | 설치·삭제·재설치, `brew test`, 유효한 자격증명 재사용(브라우저 로그인 없음) |
+| macOS 27.2 (26B123) | MacBook Pro, Apple M4 Pro | Homebrew tap 0.2.0 | Edge, `browser_mode = auto` | Microsoft Entra ID (SAML, 내 앱 링크) | 설치·삭제·재설치, `brew test`, 유효한 자격증명 재사용, `--force` 헤드리스 갱신 |
 | macOS 26.5.1 | MacBook Air, Apple M1 | Homebrew tap 0.2.0 | Edge, 대화형 | Microsoft Entra ID (SAML, 내 앱 링크) | 로그인, `~/.samlgate`의 계정 2개 |
 | macOS, Apple Silicon | MacBook Pro, Apple M4 Pro | 소스 빌드 | 네이티브 WebView | Microsoft Entra ID (SAML, 내 앱 링크) | 로그인 완료(2026-10), 합성 로컬 페이지 자동 테스트 |
 | macOS, Intel | — | `osx-x64` 소스 빌드 | — | — | 빌드, Rosetta 실행만 확인. **Intel 실기기 미검증** |
