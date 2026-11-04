@@ -111,6 +111,16 @@ public static class BrowserSamlCapture
             startInfo.ArgumentList.Add(argument);
         }
 
+        if (OperatingSystem.IsWindows() &&
+            (options.Browser.Kind == "edge" ||
+             Path.GetFileName(options.Browser.ExecutablePath).Equals("msedge.exe", StringComparison.OrdinalIgnoreCase)))
+        {
+            // Edge may exit its initial process and relaunch for the compatibility layer,
+            // breaking process ownership and making DevTools startup look like a failure.
+            // Also used by Microsoft's Playwright Chromium launcher.
+            startInfo.ArgumentList.Add("--edge-skip-compat-layer-relaunch");
+        }
+
         if (options.Headless)
         {
             startInfo.ArgumentList.Add("--headless=new");
