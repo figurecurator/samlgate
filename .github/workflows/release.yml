@@ -8,7 +8,7 @@ permissions:
   contents: write
 
 jobs:
-  # Windows only for now — macOS and Linux builds are not published until they are supported
+  # Windows here; Apple Silicon macOS in build-macos (published for the Homebrew tap). Linux is not published yet.
   build:
     strategy:
       fail-fast: false
@@ -43,8 +43,36 @@ jobs:
           name: ${{ matrix.rid }}
           path: dist/*
 
+  build-macos:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Publish (NativeAOT + WebView helper)
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          dotnet publish src/Samlgate/Samlgate.csproj -c Release -r osx-arm64 -o out \
+            -p:Version="$version" -p:DebugType=none
+          ./out/samlgate --version
+          test -x ./out/samlgate-webview
+          cp LICENSE README.md out/
+
+      - name: Package
+        run: |
+          mkdir dist
+          tar -czf "dist/samlgate-${GITHUB_REF_NAME}-osx-arm64.tar.gz" -C out \
+            samlgate samlgate-webview LICENSE README.md
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: osx-arm64
+          path: dist/*
+
   release:
-    needs: build
+    needs: [build, build-macos]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4

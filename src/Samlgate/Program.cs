@@ -66,6 +66,6 @@ catch (Exception e)
 {
     // Anything else is a bug; keep the output short but reportable
     Console.Error.WriteLine($"unexpected error: {e.GetType().Name}: {e.Message}");
-    Console.Error.WriteLine("Please report it at https://github.com/platpharm/samlgate/issues");
+    Console.Error.WriteLine("Please report it at https://github.com/figurecurator/samlgate/issues");
     return 1;
 }
