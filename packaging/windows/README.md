@@ -13,6 +13,9 @@ These manifests describe the existing **v0.2.0** release. They have not been sub
 Download the two official Windows ZIPs and `SHA256SUMS` from the release into a separate directory. From the repository root, using PowerShell 7:
 
 ```powershell
+# Standalone regression checks; no release artifacts or external modules needed.
+.\packaging\windows\Test-WinGetManifest.ps1
+
 winget validate --manifest .\packaging\windows\winget
 Get-Content .\packaging\windows\scoop\samlgate.json -Raw |
     Test-Json -SchemaFile "$env:USERPROFILE\scoop\apps\scoop\current\schema.json"
@@ -20,6 +23,8 @@ Get-Content .\packaging\windows\scoop\samlgate.json -Raw |
 ```
 
 The Scoop schema command requires an existing Scoop installation; adjust the path for other locations. It checks JSON schema, not installation or update behavior.
+
+The installer check consumes every entry in the generated manifest's flat `Installers` list, supports reordered scalar fields such as `InstallerType`, and rejects extra or duplicate architectures and unsupported YAML layouts.
 
 The smoke script leaves extracted binaries and synthetic configuration in a new `smoke-<guid>` subdirectory of the artifact directory. It restores the configuration environment variables it changes and does not modify PATH or real AWS/saml2aws settings. On x64, only the x64 executable runs; ARM64 checks remain static.
 

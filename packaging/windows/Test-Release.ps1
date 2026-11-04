@@ -8,6 +8,9 @@ $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $false
 $artifactRoot = (Resolve-Path -LiteralPath $ArtifactsDirectory).Path
 $manifest = Get-Content (Join-Path $PSScriptRoot 'scoop/samlgate.json') -Raw | ConvertFrom-Json
+. (Join-Path $PSScriptRoot 'Assert-WinGetManifest.ps1')
+$installer = Get-Content (Join-Path $PSScriptRoot 'winget/figurecurator.samlgate.installer.yaml') -Raw
+Assert-WinGetManifest -InstallerManifest $installer -ScoopManifest $manifest
 $checksums = Get-Content (Join-Path $artifactRoot 'SHA256SUMS')
 $runRoot = Join-Path $artifactRoot ('smoke-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $runRoot | Out-Null
@@ -22,17 +25,6 @@ foreach ($item in @(
     $hash = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
     if ($hash -ne $entry.hash) { throw "Manifest checksum mismatch: $fileName" }
     if ($checksums -notcontains "$hash  $fileName") { throw "Release checksum mismatch: $fileName" }
-    $installer = Get-Content (Join-Path $PSScriptRoot 'winget/figurecurator.samlgate.installer.yaml') -Raw
-    # Read the simple installer-entry layout used by our generated manifest. Fail closed if it changes.
-    $architecture = $item.Rid.Substring(4)
-    $entries = [regex]::Matches($installer, '(?m)^  - Architecture: (?<arch>\S+)\r?\n    InstallerUrl: (?<url>\S+)\r?\n    InstallerSha256: (?<hash>[A-Fa-f0-9]{64})\r?$')
-    $matching = @($entries | Where-Object { $_.Groups['arch'].Value -eq $architecture })
-    if ($entries.Count -ne 2 -or $matching.Count -ne 1 -or
-        $matching[0].Groups['url'].Value -cne $entry.url -or
-        $matching[0].Groups['hash'].Value -ine $hash) {
-        throw "WinGet URL/checksum mismatch: $fileName"
-    }
-
     $archive = [IO.Compression.ZipFile]::OpenRead($zipPath)
     try {
         $names = @($archive.Entries | ForEach-Object FullName | Sort-Object)
