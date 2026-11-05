@@ -10,13 +10,19 @@ $arm64Url = 'https://github.com/figurecurator/samlgate/releases/download/v0.2.1/
 $arm64Checksum = '64bbc9d45b0e7a97dde471eaf406734a4c9da96c2493fffd2d4546e17c3ff66e'
 
 $isArm64 = $env:PROCESSOR_ARCHITECTURE -eq 'ARM64' -or $env:PROCESSOR_ARCHITEW6432 -eq 'ARM64'
+if (-not $isArm64 -and -not [Environment]::Is64BitOperatingSystem) {
+  throw 'samlgate requires 64-bit Windows (x64 or ARM64).'
+}
 
+# Pass the selected archive as Url, not Url64bit: Chocolatey reports ARM64 as 32-bit
+# (Get-OSArchitectureWidth), so it would ignore Url64bit there. With no Url64bit, the
+# same Url is used on x64 as well.
 $packageArgs = @{
-  PackageName    = $env:ChocolateyPackageName
-  UnzipLocation  = $toolsDir
-  Url64bit       = $(if ($isArm64) { $arm64Url } else { $x64Url })
-  Checksum64     = $(if ($isArm64) { $arm64Checksum } else { $x64Checksum })
-  ChecksumType64 = 'sha256'
+  PackageName   = $env:ChocolateyPackageName
+  UnzipLocation = $toolsDir
+  Url           = $(if ($isArm64) { $arm64Url } else { $x64Url })
+  Checksum      = $(if ($isArm64) { $arm64Checksum } else { $x64Checksum })
+  ChecksumType  = 'sha256'
 }
 
 Install-ChocolateyZipPackage @packageArgs

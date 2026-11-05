@@ -40,6 +40,7 @@ winget settings --enable LocalManifestFiles
 winget install --manifest .\packaging\windows\winget
 samlgate --version
 winget uninstall Rainbowsoft.samlgate
+# A local-manifest install may not match the package ID; if so, uninstall by the ID `winget list samlgate` shows
 
 # Chocolatey (elevated shell)
 choco pack .\packaging\windows\chocolatey\samlgate.nuspec --outputdirectory ..\choco-out
@@ -54,7 +55,7 @@ choco uninstall samlgate -y
 2. Update every version, URL and hash in `winget/`, `chocolatey/` and `scoop/` from that release's `SHA256SUMS`. Never substitute local build hashes.
 3. Run the validation and local install tests above.
 4. **WinGet:** submit the three YAMLs as `manifests/r/Rainbowsoft/samlgate/<version>/` in `microsoft/winget-pkgs`, for example with `wingetcreate submit --token <PAT> .\packaging\windows\winget`. Later versions: `wingetcreate update Rainbowsoft.samlgate --version <v> --urls <x64-zip> <arm64-zip> --submit`.
-5. **Chocolatey:** `choco push samlgate.<version>.nupkg --source https://push.chocolatey.org/ --api-key <key>` from the Chocolatey account that owns the package. The first version goes through human moderation.
+5. **Chocolatey:** `choco push ..\choco-out\samlgate.<version>.nupkg --source https://push.chocolatey.org/ --api-key <key>` from the Chocolatey account that owns the package. The first version goes through human moderation.
 6. Test on an actual Windows ARM64 machine before claiming runtime or login validation there.
 
 Use a patched .NET NativeAOT toolchain for builds (runtime 10.0.14 or later); an older local SDK can emit NU1903 for ILCompiler 10.0.10.
