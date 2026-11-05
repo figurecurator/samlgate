@@ -1,0 +1,6 @@
+# Enable CodeRabbit's GitHub review approval workflow.
+# CodeRabbit approves after review comments are resolved and pre-merge checks pass.
+reviews:
+  request_changes_workflow: true
+  auto_review:
+    enabled: true
