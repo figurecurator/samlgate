@@ -50,7 +50,7 @@ samlgate는 매번 브라우저를 닫기 때문에 세션 쿠키만 있으면 �
 
 다운로드한 ZIP의 SHA256(`Get-FileHash <zip-path> -Algorithm SHA256`)을 릴리스의 `SHA256SUMS`와 대조합니다.
 Windows ARM64는 패키지를 제공하지만 ARM64 실기기 실행·로그인은 아직 미검증입니다.
-WinGet·Scoop manifest는 [`packaging/windows`](packaging/windows)에서 준비 중이며 아직 공개 배포하지 않았습니다.
+WinGet(`Rainbowsoft.samlgate`)·Chocolatey(`samlgate`)·Scoop manifest는 [`packaging/windows`](packaging/windows)에서 준비 중이며 아직 공개 배포하지 않았습니다.
 
 소스 빌드: `dotnet publish src/Samlgate -c Release -r win-x64` (.NET 10 SDK, NativeAOT용 Visual Studio
 "C++를 사용한 데스크톱 개발" 워크로드 필요)

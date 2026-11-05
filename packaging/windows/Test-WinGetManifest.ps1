@@ -1,6 +1,6 @@
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'Assert-WinGetManifest.ps1')
-$manifest = Get-Content (Join-Path $PSScriptRoot 'winget/figurecurator.samlgate.installer.yaml') -Raw
+$manifest = Get-Content (Join-Path $PSScriptRoot 'winget/Rainbowsoft.samlgate.installer.yaml') -Raw
 $scoop = Get-Content (Join-Path $PSScriptRoot 'scoop/samlgate.json') -Raw | ConvertFrom-Json
 $passed = 0
 
@@ -49,4 +49,18 @@ Assert-ManifestCase 'swapped hashes' $swapped $false
 $swapped = $manifest.Replace($scoop.architecture.'64bit'.url, 'URL_SWAP').Replace($scoop.architecture.arm64.url, $scoop.architecture.'64bit'.url).Replace('URL_SWAP', $scoop.architecture.arm64.url)
 Assert-ManifestCase 'swapped URLs' $swapped $false
 Assert-ManifestCase 'unsupported nested field' ($manifest.Replace('  - Architecture: x64', "  - Architecture: x64`n    InstallerSwitches:`n      Silent: /quiet")) $false
+$chocoScript = Get-Content (Join-Path $PSScriptRoot 'chocolatey/tools/chocolateyinstall.ps1') -Raw
+$nuspec = Get-Content (Join-Path $PSScriptRoot 'chocolatey/samlgate.nuspec') -Raw
+function Assert-ChocolateyCase([string] $Name, [string] $Script, [string] $Spec, [bool] $ShouldPass) {
+    $accepted = $true
+    try { Assert-ChocolateyPackage -InstallScript $Script -Nuspec $Spec -ScoopManifest $scoop }
+    catch { $accepted = $false }
+    if ($accepted -ne $ShouldPass) { throw "Unexpected validation result: $Name (accepted=$accepted)" }
+    Write-Output "PASS $Name"
+    $script:passed++
+}
+Assert-ChocolateyCase 'current Chocolatey package' $chocoScript $nuspec $true
+Assert-ChocolateyCase 'Chocolatey wrong hash' ($chocoScript.Replace($scoop.architecture.'64bit'.hash, '0' * 64)) $nuspec $false
+Assert-ChocolateyCase 'Chocolatey wrong URL' ($chocoScript.Replace($scoop.architecture.arm64.url, 'https://example.invalid/wrong.zip')) $nuspec $false
+Assert-ChocolateyCase 'Chocolatey version mismatch' $chocoScript ($nuspec.Replace("<version>$($scoop.version)</version>", '<version>0.0.1</version>')) $false
 Write-Output "$passed manifest validation cases passed"

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>samlgate</id>
+    <version>0.2.1</version>
+    <title>samlgate</title>
+    <authors>Rainbowsoft</authors>
+    <owners>Rainbowsoft</owners>
+    <copyright>Rainbowsoft</copyright>
+    <projectUrl>https://github.com/figurecurator/samlgate</projectUrl>
+    <projectSourceUrl>https://github.com/figurecurator/samlgate</projectSourceUrl>
+    <packageSourceUrl>https://github.com/figurecurator/samlgate/tree/main/packaging/windows/chocolatey</packageSourceUrl>
+    <docsUrl>https://github.com/figurecurator/samlgate#readme</docsUrl>
+    <bugTrackerUrl>https://github.com/figurecurator/samlgate/issues</bugTrackerUrl>
+    <licenseUrl>https://github.com/figurecurator/samlgate/blob/v0.2.1/LICENSE</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <releaseNotes>https://github.com/figurecurator/samlgate/releases/tag/v0.2.1</releaseNotes>
+    <tags>aws cli saml saml2aws sso entra-id cross-platform foss</tags>
+    <summary>AWS credentials from a browser-based SAML sign-in.</summary>
+    <description><![CDATA[samlgate is a browser-based alternative to `saml2aws login`.
+
+It opens your IdP sign-in (Microsoft Entra ID, Okta, Google Workspace, ...) in Microsoft Edge or another installed
+Chromium browser using a dedicated persistent profile, captures the SAML assertion on its way to AWS, exchanges it
+for temporary credentials with STS, and writes them to `~/.aws/credentials` in the same format saml2aws uses.
+
+- Reads compatible account settings from `~/.saml2aws`
+- Supports `credential_process` and `exec`
+- No Playwright or browser-driver downloads; a single native executable
+
+Requires Microsoft Edge (included with Windows), Google Chrome, Brave, Chromium or Whale.
+
+Uninstalling the package removes `samlgate.exe` only. `~/.samlgate`, `~/.aws/credentials` and the dedicated browser
+profile are left in place.
+]]></description>
+  </metadata>
+  <files>
+    <file src="tools\**" target="tools" />
+  </files>
+</package>

@@ -56,3 +56,27 @@ function Assert-WinGetManifest {
         }
     }
 }
+
+function Assert-ChocolateyPackage {
+    param(
+        [Parameter(Mandatory)][string] $InstallScript,
+        [Parameter(Mandatory)][string] $Nuspec,
+        [Parameter(Mandatory)] $ScoopManifest
+    )
+
+    # The Chocolatey install script must download the same official archives as the other manifests.
+    $architectures = @{ x64 = '64bit'; arm64 = 'arm64' }
+    foreach ($architecture in $architectures.Keys) {
+        $expected = $ScoopManifest.architecture.($architectures[$architecture])
+        $url = [regex]::Matches($InstallScript, "(?m)^\`$${architecture}Url = '([^']+)'\s*$")
+        $hash = [regex]::Matches($InstallScript, "(?m)^\`$${architecture}Checksum = '([^']+)'\s*$")
+        if ($url.Count -ne 1 -or $hash.Count -ne 1 -or
+            $url[0].Groups[1].Value -cne $expected.url -or
+            $hash[0].Groups[1].Value -notmatch '^[A-Fa-f0-9]{64}$' -or
+            $hash[0].Groups[1].Value -ine $expected.hash) {
+            throw "Chocolatey URL/checksum mismatch: $architecture"
+        }
+    }
+    $version = ([xml] $Nuspec).package.metadata.version
+    if ($version -cne $ScoopManifest.version) { throw "Chocolatey version mismatch: $version" }
+}

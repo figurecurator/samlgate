@@ -50,7 +50,7 @@ Before adding the folder to `PATH`, run these commands inside it:
 
 Compare the downloaded ZIP's SHA256 (`Get-FileHash <zip-path> -Algorithm SHA256`) with the release's `SHA256SUMS`.
 Windows ARM64 is packaged; runtime and login validation on ARM64 hardware are still pending.
-WinGet and Scoop manifests are being prepared in [`packaging/windows`](packaging/windows); they are not published yet.
+WinGet (`Rainbowsoft.samlgate`), Chocolatey (`samlgate`) and Scoop manifests are being prepared in [`packaging/windows`](packaging/windows); they are not published yet.
 
 To build from source: `dotnet publish src/Samlgate -c Release -r win-x64` (.NET 10 SDK and the Visual Studio
 "Desktop development with C++" workload for NativeAOT).
