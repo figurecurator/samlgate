@@ -1,11 +1,15 @@
-# Windows packaging drafts
+# Windows packaging
 
-These manifests describe the existing **v0.2.0** release. They have not been submitted to WinGet or published as a Scoop bucket. Package-manager install commands should not be advertised as available yet.
+These manifests describe the **v0.2.1** release. Package IDs follow the publisher, Rainbowsoft (contact@rainbowsoft.co.kr), not the GitHub organization name: WinGet `Rainbowsoft.samlgate`, Chocolatey `samlgate`. Download URLs still point at `github.com/figurecurator/samlgate`.
+
+Until a submission is accepted, do not advertise its install command as available.
 
 ## Contents
 
-- `winget/`: multi-file WinGet manifest for `figurecurator.samlgate`, ZIP with a portable executable, x64 and ARM64.
+- `winget/`: multi-file WinGet manifest for `Rainbowsoft.samlgate`, ZIP with a portable executable, x64 and ARM64.
+- `chocolatey/`: Chocolatey package `samlgate`. The install script downloads the official release ZIP (ARM64 on ARM64 Windows, x64 otherwise) and verifies its SHA256; Chocolatey shims `samlgate.exe` and removes the shim on uninstall. No uninstall script and no application-state deletion.
 - `scoop/samlgate.json`: candidate for a self-hosted bucket, x64 and ARM64. No custom installation scripts or application-state deletion hooks.
+- `Test-WinGetManifest.ps1`: standalone regression checks that the WinGet and Chocolatey files reference the same URLs, hashes and version as the Scoop manifest.
 - `Test-Release.ps1`: checksum, archive layout and PE architecture checks, plus native-architecture CLI smoke tests with synthetic configuration. No login or STS calls.
 
 ## Validation
@@ -28,15 +32,32 @@ The installer check consumes every entry in the generated manifest's flat `Insta
 
 The smoke script leaves extracted binaries and synthetic configuration in a new `smoke-<guid>` subdirectory of the artifact directory. It restores the configuration environment variables it changes and does not modify PATH or real AWS/saml2aws settings. On x64, only the x64 executable runs; ARM64 checks remain static.
 
-Verified on Windows x64: WinGet schema validation, installed Scoop schema validation, both release checksums and archive layouts, PE machine types, and x64 version/help/configure/status. ARM64 execution, package-manager install/uninstall, PATH/shim behavior and Scoop autoupdate are still unverified.
+### Local install tests
 
-## Before publishing
+```powershell
+# WinGet (enabling local manifests needs an elevated shell once)
+winget settings --enable LocalManifestFiles
+winget install --manifest .\packaging\windows\winget
+samlgate --version
+winget uninstall Rainbowsoft.samlgate
+# A local-manifest install may not match the package ID; if so, uninstall by the ID `winget list samlgate` shows
 
-1. Use `Rainbowsoft` as the publisher display name, matching the source author metadata. Confirm package ID availability and the target self-hosted Scoop bucket.
-2. Test package-manager install/uninstall and update behavior. Schema validation alone does not exercise installation. Keep credentials and browser profiles on uninstall.
-3. Test on an actual Windows ARM64 machine before claiming runtime or login validation there.
-4. For a new release, update every version, URL and hash. These manifests reference unmodified v0.2.0 artifacts; the Edge compatibility-layer relaunch fix in current source needs a new release before distribution. Never substitute local build hashes under the old release version.
-5. Use a patched .NET NativeAOT toolchain for new builds. Official v0.2.0 Windows executables contain the patched runtime 10.0.14; an older local SDK can still emit NU1903 for ILCompiler 10.0.10.
-6. For WinGet, place the three YAMLs under `manifests/f/figurecurator/samlgate/0.2.0/` in `microsoft/winget-pkgs` for review. For Scoop, put `samlgate.json` at `bucket/samlgate.json` in the chosen bucket and validate its checkver/autoupdate behavior.
+# Chocolatey (elevated shell)
+choco pack .\packaging\windows\chocolatey\samlgate.nuspec --outputdirectory ..\choco-out
+choco install samlgate --source ..\choco-out -y
+samlgate --version
+choco uninstall samlgate -y
+```
 
-References: [WinGet manifests](https://learn.microsoft.com/en-us/windows/package-manager/package/manifest), [Scoop manifests](https://github.com/ScoopInstaller/Scoop/wiki/App-Manifests), [v0.2.0 release build](https://github.com/figurecurator/samlgate/actions/runs/41794784907), [specific .NET advisory](https://github.com/advisories/GHSA-p3jp-9v83-76w9).
+## Publishing
+
+1. Release first: tag `vX.Y.Z` on `main`; the release workflow publishes the ZIPs and `SHA256SUMS`.
+2. Update every version, URL and hash in `winget/`, `chocolatey/` and `scoop/` from that release's `SHA256SUMS`. Never substitute local build hashes.
+3. Run the validation and local install tests above.
+4. **WinGet:** submit the three YAMLs as `manifests/r/Rainbowsoft/samlgate/<version>/` in `microsoft/winget-pkgs`, for example with `wingetcreate submit --token <PAT> .\packaging\windows\winget`. Later versions: `wingetcreate update Rainbowsoft.samlgate --version <v> --urls <x64-zip> <arm64-zip> --submit`.
+5. **Chocolatey:** `choco push ..\choco-out\samlgate.<version>.nupkg --source https://push.chocolatey.org/ --api-key <key>` from the Chocolatey account that owns the package. The first version goes through human moderation.
+6. Test on an actual Windows ARM64 machine before claiming runtime or login validation there.
+
+Use a patched .NET NativeAOT toolchain for builds (runtime 10.0.14 or later); an older local SDK can emit NU1903 for ILCompiler 10.0.10.
+
+References: [WinGet manifests](https://learn.microsoft.com/en-us/windows/package-manager/package/manifest), [Chocolatey package creation](https://docs.chocolatey.org/en-us/create/create-packages/), [Scoop manifests](https://github.com/ScoopInstaller/Scoop/wiki/App-Manifests), [specific .NET advisory](https://github.com/advisories/GHSA-p3jp-9v83-76w9).

@@ -9,8 +9,11 @@ $PSNativeCommandUseErrorActionPreference = $false
 $artifactRoot = (Resolve-Path -LiteralPath $ArtifactsDirectory).Path
 $manifest = Get-Content (Join-Path $PSScriptRoot 'scoop/samlgate.json') -Raw | ConvertFrom-Json
 . (Join-Path $PSScriptRoot 'Assert-WinGetManifest.ps1')
-$installer = Get-Content (Join-Path $PSScriptRoot 'winget/figurecurator.samlgate.installer.yaml') -Raw
+$installer = Get-Content (Join-Path $PSScriptRoot 'winget/Rainbowsoft.samlgate.installer.yaml') -Raw
 Assert-WinGetManifest -InstallerManifest $installer -ScoopManifest $manifest
+Assert-ChocolateyPackage -ScoopManifest $manifest `
+    -InstallScript (Get-Content (Join-Path $PSScriptRoot 'chocolatey/tools/chocolateyinstall.ps1') -Raw) `
+    -Nuspec (Get-Content (Join-Path $PSScriptRoot 'chocolatey/samlgate.nuspec') -Raw)
 $checksums = Get-Content (Join-Path $artifactRoot 'SHA256SUMS')
 $runRoot = Join-Path $artifactRoot ('smoke-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $runRoot | Out-Null

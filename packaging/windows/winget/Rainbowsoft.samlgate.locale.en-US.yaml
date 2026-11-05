@@ -1,13 +1,15 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.12.0.schema.json
-PackageIdentifier: figurecurator.samlgate
-PackageVersion: 0.2.0
+PackageIdentifier: Rainbowsoft.samlgate
+PackageVersion: 0.2.1
 PackageLocale: en-US
 Publisher: Rainbowsoft
 PublisherUrl: https://github.com/figurecurator
+PublisherSupportUrl: https://github.com/figurecurator/samlgate/issues
+Author: Rainbowsoft
 PackageName: samlgate
 PackageUrl: https://github.com/figurecurator/samlgate
 License: MIT
-LicenseUrl: https://github.com/figurecurator/samlgate/blob/v0.2.0/LICENSE
+LicenseUrl: https://github.com/figurecurator/samlgate/blob/v0.2.1/LICENSE
 ShortDescription: AWS credentials from a browser-based SAML sign-in.
 Description: |-
   A browser-based alternative to saml2aws login using a dedicated persistent Chromium profile.
@@ -20,6 +22,6 @@ Tags:
   - saml
   - saml2aws
   - sso
-ReleaseNotesUrl: https://github.com/figurecurator/samlgate/releases/tag/v0.2.0
+ReleaseNotesUrl: https://github.com/figurecurator/samlgate/releases/tag/v0.2.1
 ManifestType: defaultLocale
 ManifestVersion: 1.12.0
