@@ -1,4 +1,4 @@
-name: Verify published Windows ARM64 v0.2.1
+name: Verify published Windows ARM64 v0.2.2
 
 on:
   workflow_dispatch:
@@ -25,8 +25,8 @@ jobs:
             throw 'A native Windows ARM64 runner is required.'
           }
 
-          $url = 'https://github.com/figurecurator/samlgate/releases/download/v0.2.1/samlgate-v0.2.1-win-arm64.zip'
-          $expectedHash = '64BBC9D45B0E7A97DDE471EAF406734A4C9DA96C2493FFFD2D4546E17C3FF66E'
+          $url = 'https://github.com/figurecurator/samlgate/releases/download/v0.2.2/samlgate-v0.2.2-win-arm64.zip'
+          $expectedHash = '9E74305A1834B46DFB42FA4A78D840CFAA620A660D7FCDFC56E5BF00137751C1'
           $work = Join-Path $env:RUNNER_TEMP ('samlgate-arm64-' + [guid]::NewGuid())
           New-Item -ItemType Directory -Path $work | Out-Null
           $zip = Join-Path $work 'release.zip'
@@ -49,6 +49,11 @@ jobs:
 
           Push-Location $work
           try {
+            $rootHelp = & $exe 2>&1
+            $rootExit = $LASTEXITCODE
+            Write-Output 'Command: samlgate.exe (no arguments)'
+            $rootHelp | ForEach-Object { Write-Output "$_" }
+            Write-Output "ExitCode=$rootExit"
             $version = & $exe --version 2>&1
             $versionExit = $LASTEXITCODE
             Write-Output 'Command: samlgate.exe --version'
@@ -59,8 +64,9 @@ jobs:
             Write-Output 'Command: samlgate.exe login --help'
             $help | ForEach-Object { Write-Output "$_" }
             Write-Output "ExitCode=$helpExit"
-            if ($versionExit -ne 0 -or ($version -join "`n").Trim() -ne '0.2.1') { throw 'Version check failed.' }
+            if ($versionExit -ne 0 -or ($version -join "`n").Trim() -ne '0.2.2') { throw 'Version check failed.' }
             if ($helpExit -ne 0 -or ($help -join "`n") -notmatch 'Usage:') { throw 'Login help check failed.' }
+            if ($rootExit -ne 0 -or ($rootHelp -join "`n") -notmatch 'Usage:') { throw 'No-argument help check failed.' }
           } finally {
             Pop-Location
           }
