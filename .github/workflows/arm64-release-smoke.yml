@@ -1,0 +1,67 @@
+name: Verify published Windows ARM64 v0.2.1
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  verify:
+    runs-on: windows-11-arm
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: ${{ runner.temp }}
+    steps:
+      - name: Verify published artifact and run help only
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $false
+          $osArch = [Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()
+          $processArch = [Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString()
+          Write-Output "Runner OS=$env:RUNNER_OS arch=$env:RUNNER_ARCH; OSArchitecture=$osArch ProcessArchitecture=$processArch"
+          if ($env:RUNNER_OS -ne 'Windows' -or $env:RUNNER_ARCH -ne 'ARM64' -or $osArch -ne 'Arm64') {
+            throw 'A native Windows ARM64 runner is required.'
+          }
+
+          $url = 'https://github.com/figurecurator/samlgate/releases/download/v0.2.1/samlgate-v0.2.1-win-arm64.zip'
+          $expectedHash = '64BBC9D45B0E7A97DDE471EAF406734A4C9DA96C2493FFFD2D4546E17C3FF66E'
+          $work = Join-Path $env:RUNNER_TEMP ('samlgate-arm64-' + [guid]::NewGuid())
+          New-Item -ItemType Directory -Path $work | Out-Null
+          $zip = Join-Path $work 'release.zip'
+          Invoke-WebRequest -Uri $url -OutFile $zip
+          $hash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash
+          Write-Output "URL=$url"
+          Write-Output "SHA256=$hash"
+          if ($hash -ne $expectedHash) { throw 'Release archive hash mismatch.' }
+          Expand-Archive -LiteralPath $zip -DestinationPath (Join-Path $work 'bin')
+          $exe = Join-Path $work 'bin/samlgate.exe'
+
+          $bytes = [IO.File]::ReadAllBytes($exe)
+          if ($bytes.Length -lt 64 -or [BitConverter]::ToUInt16($bytes, 0) -ne 0x5A4D) { throw 'Invalid DOS header.' }
+          $pe = [BitConverter]::ToInt32($bytes, 0x3C)
+          if ($pe -lt 64 -or $pe -gt $bytes.Length - 6) { throw 'Invalid PE offset.' }
+          if ([BitConverter]::ToUInt32($bytes, $pe) -ne 0x00004550) { throw 'Invalid PE signature.' }
+          $machine = [BitConverter]::ToUInt16($bytes, $pe + 4)
+          Write-Output ('PE Machine=0x{0:X4}' -f $machine)
+          if ($machine -ne 0xAA64) { throw 'Executable is not ARM64.' }
+
+          Push-Location $work
+          try {
+            $version = & $exe --version 2>&1
+            $versionExit = $LASTEXITCODE
+            Write-Output 'Command: samlgate.exe --version'
+            $version | ForEach-Object { Write-Output "$_" }
+            Write-Output "ExitCode=$versionExit"
+            $help = & $exe login --help 2>&1
+            $helpExit = $LASTEXITCODE
+            Write-Output 'Command: samlgate.exe login --help'
+            $help | ForEach-Object { Write-Output "$_" }
+            Write-Output "ExitCode=$helpExit"
+            if ($versionExit -ne 0 -or ($version -join "`n").Trim() -ne '0.2.1') { throw 'Version check failed.' }
+            if ($helpExit -ne 0 -or ($help -join "`n") -notmatch 'Usage:') { throw 'Login help check failed.' }
+          } finally {
+            Pop-Location
+          }
+          Write-Output 'Passed: archive hash, ARM64 PE header, version and login help. Installation and authentication were not tested.'
