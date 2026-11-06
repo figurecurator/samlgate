@@ -12,11 +12,11 @@ jobs:
     defaults:
       run:
         shell: pwsh
-        working-directory: ${{ runner.temp }}
     steps:
       - name: Verify published artifact and run help only
         run: |
           $ErrorActionPreference = 'Stop'
+          Set-Location -LiteralPath $env:RUNNER_TEMP
           $PSNativeCommandUseErrorActionPreference = $false
           $osArch = [Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()
           $processArch = [Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString()
