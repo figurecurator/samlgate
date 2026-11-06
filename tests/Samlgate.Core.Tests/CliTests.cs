@@ -5,6 +5,54 @@ namespace Samlgate.Tests;
 
 public class CliTests
 {
+    [Theory]
+    [InlineData()]
+    [InlineData("--help")]
+    public async Task Invoke_RootHelp_Succeeds(params string[] args)
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        var result = Cli.Build().Parse(args);
+
+        var exitCode = await result.InvokeAsync(new InvocationConfiguration { Output = output, Error = error });
+
+        Assert.Equal(0, exitCode);
+        Assert.Contains("--help", output.ToString());
+        Assert.Contains("login", output.ToString());
+        Assert.Equal("", error.ToString());
+    }
+
+    [Fact]
+    public async Task Invoke_Version_SucceedsWithoutHelp()
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        var exitCode = await Cli.Build().Parse(["--version"])
+            .InvokeAsync(new InvocationConfiguration { Output = output, Error = error });
+
+        Assert.Equal(0, exitCode);
+        Assert.NotEmpty(output.ToString().Trim());
+        Assert.DoesNotContain("--help", output.ToString());
+        Assert.Equal("", error.ToString());
+    }
+
+    [Theory]
+    [InlineData("frobnicate")]
+    [InlineData("--bogus")]
+    [InlineData("login", "--bogus")]
+    [InlineData("login", "--profile")]
+    [InlineData("exec")]
+    public async Task Invoke_InvalidInput_StillFails(params string[] args)
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        var exitCode = await Cli.Build().Parse(args)
+            .InvokeAsync(new InvocationConfiguration { Output = output, Error = error });
+
+        Assert.NotEqual(0, exitCode);
+        Assert.NotEmpty(error.ToString());
+    }
+
     [Fact]
     public void Parse_CommandAndOptions()
     {

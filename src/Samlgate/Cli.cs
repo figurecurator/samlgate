@@ -1,4 +1,5 @@
 using System.CommandLine;
+using System.CommandLine.Help;
 using System.CommandLine.Parsing;
 using Samlgate.Config;
 
@@ -67,6 +68,9 @@ internal static class Cli
         var version = root.Options.OfType<VersionOption>().Single();
         root.Options.Remove(version);
         root.Options.Add(new VersionOption("--version", "-v"));
+
+        // Invoking the CLI without a subcommand shows help; parsing errors still fail.
+        root.SetAction(new HelpAction().Invoke);
 
         return root;
     }
