@@ -38,6 +38,22 @@ samlgate는 매번 브라우저를 닫기 때문에 세션 쿠키만 있으면 �
 
 ### Windows
 
+**Chocolatey**: Chocolatey가 설치되어 있다면 관리자 PowerShell에서 실행합니다.
+
+```powershell
+choco install samlgate -y
+samlgate --version
+```
+
+[Chocolatey 패키지](https://community.chocolatey.org/packages/samlgate/0.2.1)는 **2026년 11월 9일 승인**되었습니다.
+이 날짜 기준 Chocolatey 배포 버전은 **0.2.1**, 최신 [GitHub 릴리스](https://github.com/figurecurator/samlgate/releases/tag/v0.2.2)는 **v0.2.2**입니다.
+v0.2.2가 필요하면 아래 ZIP 수동 설치 방법을 사용하세요.
+
+업데이트는 `choco upgrade samlgate -y`, 삭제는 `choco uninstall samlgate -y`입니다.
+삭제해도 `~/.samlgate`, `~/.aws/credentials`, 전용 브라우저 프로필은 남습니다.
+
+**ZIP 수동 설치**
+
 [Releases](https://github.com/figurecurator/samlgate/releases)에서 `samlgate-<버전>-win-x64.zip`(또는 `win-arm64`)을 받아
 `samlgate.exe`를 `PATH`에 있는 폴더에 풉니다.
 
@@ -50,7 +66,7 @@ samlgate는 매번 브라우저를 닫기 때문에 세션 쿠키만 있으면 �
 
 다운로드한 ZIP의 SHA256(`Get-FileHash <zip-path> -Algorithm SHA256`)을 릴리스의 `SHA256SUMS`와 대조합니다.
 Windows ARM64는 패키지를 제공하지만 ARM64 실기기 실행·로그인은 아직 미검증입니다.
-WinGet(`Rainbowsoft.samlgate`)·Chocolatey(`samlgate`)·Scoop manifest는 [`packaging/windows`](packaging/windows)에서 준비 중이며 아직 공개 배포하지 않았습니다.
+WinGet(`Rainbowsoft.samlgate`)은 [검토 대기 중](https://github.com/microsoft/winget-pkgs/pull/471723)이며 Scoop은 아직 공개 배포하지 않았습니다. Manifest와 패키지 상태는 [`packaging/windows`](packaging/windows)를 참고하세요.
 
 소스 빌드: `dotnet publish src/Samlgate -c Release -r win-x64` (.NET 10 SDK, NativeAOT용 Visual Studio
 "C++를 사용한 데스크톱 개발" 워크로드 필요)

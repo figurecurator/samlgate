@@ -38,6 +38,22 @@ Entra sign-in — samlgate closes the browser every time, so a session-only cook
 
 ### Windows
 
+**Chocolatey**: with Chocolatey installed, run in an elevated PowerShell:
+
+```powershell
+choco install samlgate -y
+samlgate --version
+```
+
+The [Chocolatey package](https://community.chocolatey.org/packages/samlgate/0.2.1) was approved on **9 November 2026**.
+As of that date, Chocolatey provides **0.2.1**, while the latest [GitHub release](https://github.com/figurecurator/samlgate/releases/tag/v0.2.2) is **v0.2.2**.
+Use the manual ZIP installation below if you need v0.2.2.
+
+Update with `choco upgrade samlgate -y` and remove with `choco uninstall samlgate -y`.
+Uninstalling leaves `~/.samlgate`, `~/.aws/credentials` and the dedicated browser profiles in place.
+
+**Manual ZIP installation**
+
 Download `samlgate-<version>-win-x64.zip` (or `win-arm64`) from
 [Releases](https://github.com/figurecurator/samlgate/releases) and extract `samlgate.exe` into a folder on your `PATH`.
 
@@ -50,7 +66,7 @@ Before adding the folder to `PATH`, run these commands inside it:
 
 Compare the downloaded ZIP's SHA256 (`Get-FileHash <zip-path> -Algorithm SHA256`) with the release's `SHA256SUMS`.
 Windows ARM64 is packaged; runtime and login validation on ARM64 hardware are still pending.
-WinGet (`Rainbowsoft.samlgate`), Chocolatey (`samlgate`) and Scoop manifests are being prepared in [`packaging/windows`](packaging/windows); they are not published yet.
+WinGet (`Rainbowsoft.samlgate`) is [awaiting review](https://github.com/microsoft/winget-pkgs/pull/471723); Scoop remains unpublished. See [`packaging/windows`](packaging/windows) for manifests and package status.
 
 To build from source: `dotnet publish src/Samlgate -c Release -r win-x64` (.NET 10 SDK and the Visual Studio
 "Desktop development with C++" workload for NativeAOT).

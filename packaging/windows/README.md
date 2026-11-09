@@ -2,7 +2,21 @@
 
 These manifests describe the **v0.2.1** release. Package IDs follow the publisher, Rainbowsoft (contact@rainbowsoft.co.kr), not the GitHub organization name: WinGet `Rainbowsoft.samlgate`, Chocolatey `samlgate`. Download URLs still point at `github.com/figurecurator/samlgate`.
 
-Until a submission is accepted, do not advertise its install command as available.
+## Distribution status (9 November 2026)
+
+- **Chocolatey:** [`samlgate` 0.2.1](https://community.chocolatey.org/packages/samlgate/0.2.1) is approved and available. Approval was granted on 9 November 2026.
+- **GitHub Releases:** the latest release is [v0.2.2](https://github.com/figurecurator/samlgate/releases/tag/v0.2.2). The manifests here and the approved Chocolatey package still target **v0.2.1**.
+- **WinGet:** `Rainbowsoft.samlgate` 0.2.2 is [awaiting review in microsoft/winget-pkgs#471723](https://github.com/microsoft/winget-pkgs/pull/471723). Do not advertise its public install command until the submission is accepted.
+- **Scoop:** the manifest remains a candidate for a self-hosted bucket; it is not published.
+
+With Chocolatey installed, run in an elevated PowerShell:
+
+```powershell
+choco install samlgate -y
+samlgate --version
+```
+
+Use `choco upgrade samlgate -y` to update to the latest version available on Chocolatey, or `choco uninstall samlgate -y` to remove it. Uninstalling leaves `~/.samlgate`, `~/.aws/credentials` and the dedicated browser profiles in place. Download the manual ZIP from GitHub Releases if you need v0.2.2.
 
 ## Contents
 
