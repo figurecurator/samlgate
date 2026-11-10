@@ -91,7 +91,9 @@ valid credentials, so this step really tests the configuration.
   prompt), ask the user which role ARN to use and retry once with
   `samlgate login --force [-a <account>] --role <arn>`. If the user does not know the ARN, ask them to run
   `samlgate login --force [-a <account>]` in their own terminal, pick the role there, and tell you whether it
-  succeeded (`echo $?` prints 0 on success).
+  succeeded (right after it: `echo $?` in bash/zsh, `echo $LASTEXITCODE` in PowerShell; 0 means success). If you
+  found `SAMLGATE_CONFIG`, `SAML2AWS_CONFIGFILE` or `AWS_SHARED_CREDENTIALS_FILE` set in step 1, include the same
+  values in the command you give them so their terminal uses the same account and credentials file.
 - For any other failure, a timeout or a cancellation, stop and report the error. Do not run the identity check,
   because the profile may still hold older credentials that would hide the failure.
 
@@ -113,7 +115,9 @@ will be windowless in that case. With `auto`, a stored IdP session is reused wit
 the IdP allows it, and the window opens otherwise. If the user wants windowless renewals and the account uses a
 Chromium browser, offer to run `samlgate configure [-a <account>] --browser-mode auto` (after they agree) so the mode
 is explicit. Older releases lack this option: check that `samlgate configure --help` lists `--browser-mode` first,
-and if it does not, offer to upgrade samlgate (`brew upgrade samlgate` or `choco upgrade samlgate -y`) instead.
+and if it does not, offer to upgrade samlgate the same way it was installed (`brew upgrade samlgate`,
+`choco upgrade samlgate -y`, or replacing `samlgate.exe` with the latest release ZIP), then check
+`samlgate --version` and `configure --help` again.
 
 ## 5. Remember how to use it
 
