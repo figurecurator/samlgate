@@ -30,11 +30,14 @@ Ground rules:
 samlgate --version          # already installed?
 ```
 
-Look at `~/.samlgate` and `~/.saml2aws` (INI files; each `[section]` is an account). samlgate reads an account from
+Look at the samlgate and saml2aws config files (INI files; each `[section]` is an account). They are
+`~/.samlgate` and `~/.saml2aws` unless the environment variables `SAMLGATE_CONFIG` or `SAML2AWS_CONFIGFILE` point
+elsewhere — check those first and read the files they name. samlgate reads an account from
 `~/.saml2aws` when `~/.samlgate` does not have it, so a saml2aws user usually needs no configuration. If either file
 has an account other than `default`, ask the user which account to use and pass `-a <account>` to every `samlgate`
 command below (`status`, `configure`, `login`). Note the account's `aws_profile` (default `saml`) and, if set,
-`credentials_file` (default `~/.aws/credentials`); later steps use both.
+`credentials_file` (default `~/.aws/credentials`, or `AWS_SHARED_CREDENTIALS_FILE` if set), `browser_type` and
+`browser_mode`; later steps use them.
 
 ```bash
 samlgate status [-a <account>]; echo $?    # 0 = that account already has a valid session
@@ -50,7 +53,8 @@ samlgate status [-a <account>]; echo $?    # 0 = that account already has a vali
 
 Verify the install with `samlgate --version`.
 
-A Chromium browser is also required: Microsoft Edge, Google Chrome, Brave, Chromium or Whale. `samlgate --version`
+Unless the account uses `browser_type = webview` (macOS native WebView, which needs no other browser), a Chromium
+browser is also required: Microsoft Edge, Google Chrome, Brave, Chromium or Whale. `samlgate --version`
 does not check for one, so check separately — on macOS look for the app in `/Applications` (for example
 `Microsoft Edge.app` or `Google Chrome.app`); on Windows, Edge ships with the OS. If none is installed, ask the user to
 install one before continuing.
@@ -78,19 +82,27 @@ signed in?", and pick a role in the terminal if asked.** Then run:
 
 ```bash
 samlgate login --force [-a <account>]
-aws sts get-caller-identity --profile <profile>
 ```
 
+Continue only if this exits with code 0. If it fails, times out or the user cancels, stop and report the error —
+do not run the identity check, because the profile may still hold older credentials that would hide the failure.
 `--force` makes samlgate visit the IdP even if the profile already holds valid credentials, so this step really tests
-the configuration. If the account sets `credentials_file`, run the AWS CLI with
+the configuration. Then:
+
+```bash
+aws sts get-caller-identity --profile <profile>
+```
+ If the account sets `credentials_file`, run the AWS CLI with
 `AWS_SHARED_CREDENTIALS_FILE=<that path>` (or use `samlgate exec [-a <account>] -- aws sts get-caller-identity`).
 Show the returned account and role to the user and confirm it is the one they expected.
 
 If several roles exist and your terminal cannot answer the role prompt, ask the user which role ARN to use and run
 `samlgate login --force [-a <account>] --role <arn>`.
 
-Whether later renewals can skip the window depends on the effective `browser_mode`. Unset means `auto` on samlgate
-versions newer than 0.2.0 and `interactive` on 0.2.0 and earlier; `webview` is always interactive. With `auto`, a
+Whether later renewals can skip the window depends on the effective `browser_mode`. `webview` is always
+interactive. When `browser_mode` is unset, the default depends on the build (released packages up to 0.2.2 use
+`interactive`; newer builds use `auto` for Chromium), and the version number alone does not tell you which — so treat
+an unset mode as `interactive`. With `auto`, a
 stored IdP session is reused without a window (about 3 seconds) while the IdP allows it, and the window opens
 otherwise. If the user wants windowless renewals and the account uses a Chromium browser, offer to run
 `samlgate configure [-a <account>] --browser-mode auto` (after they agree).
