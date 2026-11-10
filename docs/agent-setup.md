@@ -28,11 +28,17 @@ Ground rules:
 
 ```bash
 samlgate --version          # already installed?
-samlgate status; echo $?    # 0 = a valid session exists for the default account
 ```
 
-Also note whether `~/.samlgate` or `~/.saml2aws` exists. samlgate reads an account from `~/.saml2aws` when
-`~/.samlgate` does not have it, so a saml2aws user usually needs no configuration.
+Look at `~/.samlgate` and `~/.saml2aws` (INI files; each `[section]` is an account). samlgate reads an account from
+`~/.saml2aws` when `~/.samlgate` does not have it, so a saml2aws user usually needs no configuration. If either file
+has an account other than `default`, ask the user which account to use and pass `-a <account>` to every `samlgate`
+command below (`status`, `configure`, `login`). Note the account's `aws_profile` (default `saml`) and, if set,
+`credentials_file` (default `~/.aws/credentials`); later steps use both.
+
+```bash
+samlgate status [-a <account>]; echo $?    # 0 = that account already has a valid session
+```
 
 ## 2. Install
 
@@ -42,8 +48,12 @@ Also note whether `~/.samlgate` or `~/.saml2aws` exists. samlgate reads an accou
 | Windows (x64/ARM64) | `choco install samlgate -y` in an **elevated** PowerShell — ask the user to run it if you cannot elevate. Without Chocolatey: download `samlgate-<version>-win-<arch>.zip` from https://github.com/figurecurator/samlgate/releases, check it against `SHA256SUMS`, and put `samlgate.exe` on `PATH`. |
 | Intel Mac / Linux | No packaged build. Tell the user and stop unless they want to build from source (`dotnet publish src/Samlgate -c Release -r <rid>`, .NET 10 SDK). |
 
-A Chromium browser is required: Microsoft Edge, Google Chrome, Brave, Chromium or Whale. Verify with
-`samlgate --version`.
+Verify the install with `samlgate --version`.
+
+A Chromium browser is also required: Microsoft Edge, Google Chrome, Brave, Chromium or Whale. `samlgate --version`
+does not check for one, so check separately — on macOS look for the app in `/Applications` (for example
+`Microsoft Edge.app` or `Google Chrome.app`); on Windows, Edge ships with the OS. If none is installed, ask the user to
+install one before continuing.
 
 ## 3. Configure the account (skip if step 1 found a usable account)
 
@@ -57,7 +67,7 @@ and the user can copy it by right-clicking the AWS tile in https://myapps.micros
 Enterprise applications → the AWS app → Properties → User access URL). Then:
 
 ```bash
-samlgate configure --url "<sign-in URL>"
+samlgate configure [-a <account>] --url "<sign-in URL>"
 # optional: --profile <name> (default: saml)  --role <role ARN>  --browser edge|chrome|brave|chromium|whale
 ```
 
@@ -67,15 +77,23 @@ Before running it, tell the user: **a browser window will open — sign in, comp
 signed in?", and pick a role in the terminal if asked.** Then run:
 
 ```bash
-samlgate login
-aws sts get-caller-identity --profile saml   # use the configured profile name
+samlgate login --force [-a <account>]
+aws sts get-caller-identity --profile <profile>
 ```
 
-If several roles exist and your terminal cannot answer the role prompt, ask the user which role ARN to use and run
-`samlgate login --force --role <arn>`.
+`--force` makes samlgate visit the IdP even if the profile already holds valid credentials, so this step really tests
+the configuration. If the account sets `credentials_file`, run the AWS CLI with
+`AWS_SHARED_CREDENTIALS_FILE=<that path>` (or use `samlgate exec [-a <account>] -- aws sts get-caller-identity`).
+Show the returned account and role to the user and confirm it is the one they expected.
 
-Later logins reuse the stored browser session without a window (about 3 seconds) as long as the IdP allows it;
-otherwise the window opens again.
+If several roles exist and your terminal cannot answer the role prompt, ask the user which role ARN to use and run
+`samlgate login --force [-a <account>] --role <arn>`.
+
+Whether later renewals can skip the window depends on the effective `browser_mode`. Unset means `auto` on samlgate
+versions newer than 0.2.0 and `interactive` on 0.2.0 and earlier; `webview` is always interactive. With `auto`, a
+stored IdP session is reused without a window (about 3 seconds) while the IdP allows it, and the window opens
+otherwise. If the user wants windowless renewals and the account uses a Chromium browser, offer to run
+`samlgate configure [-a <account>] --browser-mode auto` (after they agree).
 
 ## 5. Remember how to use it
 
@@ -86,8 +104,10 @@ show them the text.
 - Codex: `~/.codex/AGENTS.md`
 - Other agents: their global instructions file.
 
-Replace `saml` with the configured profile and add `-a <account>` if a non-default account was configured. Write it
-in the user's language if they prefer.
+Replace `saml` with the configured profile, add `-a <account>` to every command if a non-default account is used,
+and mention `AWS_SHARED_CREDENTIALS_FILE=<path>` if the account sets `credentials_file`. Keep the second bullet only
+if the effective mode is `auto`; otherwise say that renewal opens a sign-in window. Write it in the user's language if
+they prefer.
 
 ```markdown
 ## AWS sign-in (samlgate)

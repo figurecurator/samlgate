@@ -198,7 +198,7 @@ Chrome·Edge·Brave·Chromium·Whale은 같은 CDP 캡처 구현을 사용합니
 samlgate login --browser chrome --browser-language en-US
 
 # AWS 자격증명이 유효해도 IdP를 다시 방문하며, 기존 세션을 창 없이 먼저 시도합니다.
-samlgate login --browser chrome --browser-language en-US --force
+samlgate login --browser chrome --browser-mode auto --browser-language en-US --force
 
 # 헤드리스 시도 없이 항상 브라우저 창을 엽니다.
 samlgate login --browser-mode interactive --force

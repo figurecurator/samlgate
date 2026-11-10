@@ -206,7 +206,7 @@ Chrome, Edge, Brave, Chromium and Whale use the same CDP capture backend. Use `-
 samlgate login --browser chrome --browser-language en-US
 
 # Revisit the IdP even if current AWS credentials are valid; the stored session is tried without a window first.
-samlgate login --browser chrome --browser-language en-US --force
+samlgate login --browser chrome --browser-mode auto --browser-language en-US --force
 
 # Always show the browser window instead (skip the headless attempt).
 samlgate login --browser-mode interactive --force
