@@ -89,7 +89,9 @@ valid credentials, so this step really tests the configuration.
 
 - If it fails with "Multiple roles are available and none is selected" (your terminal could not answer the role
   prompt), ask the user which role ARN to use and retry once with
-  `samlgate login --force [-a <account>] --role <arn>`.
+  `samlgate login --force [-a <account>] --role <arn>`. If the user does not know the ARN, ask them to run
+  `samlgate login --force [-a <account>]` in their own terminal, pick the role there, and tell you whether it
+  succeeded (`echo $?` prints 0 on success).
 - For any other failure, a timeout or a cancellation, stop and report the error. Do not run the identity check,
   because the profile may still hold older credentials that would hide the failure.
 
@@ -110,7 +112,8 @@ builds use `auto` for Chromium, and the version number alone does not tell them 
 will be windowless in that case. With `auto`, a stored IdP session is reused without a window (about 3 seconds) while
 the IdP allows it, and the window opens otherwise. If the user wants windowless renewals and the account uses a
 Chromium browser, offer to run `samlgate configure [-a <account>] --browser-mode auto` (after they agree) so the mode
-is explicit.
+is explicit. Older releases lack this option: check that `samlgate configure --help` lists `--browser-mode` first,
+and if it does not, offer to upgrade samlgate (`brew upgrade samlgate` or `choco upgrade samlgate -y`) instead.
 
 ## 5. Remember how to use it
 
