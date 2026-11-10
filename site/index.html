@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="ko" data-lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f1e9">
+  <meta name="description" content="samlgate: AWS credentials from a browser-based SAML sign-in. A drop-in replacement for saml2aws login on Windows and macOS. 브라우저 SAML 로그인으로 AWS CLI 임시 자격 증명을 받는 도구.">
+  <meta property="og:title" content="samlgate · 브라우저 로그인으로 AWS CLI 시작하기">
+  <meta property="og:description" content="AWS credentials from a browser-based SAML sign-in — a drop-in replacement for saml2aws login.">
+  <meta property="og:url" content="https://figurecurator.github.io/samlgate/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://figurecurator.github.io/samlgate/">
+  <link rel="stylesheet" href="styles.css">
+  <title>samlgate · 브라우저 로그인으로 AWS CLI 시작하기</title>
+  <script>
+    (function () {
+      var lang = null;
+      try { lang = new URLSearchParams(location.search).get("lang"); } catch (e) {}
+      if (lang !== "ko" && lang !== "en") {
+        try { lang = localStorage.getItem("samlgate-lang"); } catch (e) {}
+      }
+      if (lang !== "ko" && lang !== "en") {
+        lang = /^ko\b/i.test(navigator.language || "") ? "ko" : "en";
+      }
+      document.documentElement.lang = lang;
+      document.documentElement.dataset.lang = lang;
+    })();
+  </script>
+</head>
+<body>
+  <a class="skip" href="#main"><span class="ko">본문으로 이동</span><span class="en">Skip to content</span></a>
+  <header class="site-header wrap">
+    <a class="brand" href="./">samlgate</a>
+    <nav aria-label="Main">
+      <a href="#agent"><span class="ko">에이전트로 설정</span><span class="en">Agent setup</span></a>
+      <a href="#install"><span class="ko">설치</span><span class="en">Install</span></a>
+      <a href="#how"><span class="ko">동작 방식</span><span class="en">How it works</span></a>
+      <a href="https://github.com/figurecurator/samlgate">GitHub</a>
+      <button class="lang-toggle" type="button" id="lang-toggle">
+        <span class="ko" lang="en">English</span><span class="en" lang="ko">한국어</span>
+      </button>
+    </nav>
+  </header>
+
+  <main class="wrap" id="main">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="ko">오픈소스 CLI · Windows · macOS</span><span class="en">Open-source CLI · Windows · macOS</span></p>
+        <h1 id="hero-title">
+          <span class="ko">브라우저 로그인으로<br>AWS CLI 시작하기.</span>
+          <span class="en">AWS credentials from<br>a browser sign-in.</span>
+        </h1>
+        <p class="lead">
+          <span class="ko">평소처럼 브라우저에서 조직 계정(Microsoft Entra ID, Okta, Google Workspace 등)으로 로그인하면, samlgate가 SAML 응답을 받아 AWS STS 임시 자격 증명으로 바꾸고 <code>~/.aws/credentials</code>에 저장합니다. <code>saml2aws login</code>을 그대로 대체합니다.</span>
+          <span class="en">Sign in to your IdP (Microsoft Entra ID, Okta, Google Workspace, …) in a real browser. samlgate catches the SAML assertion, exchanges it with AWS STS for temporary credentials and writes them to <code>~/.aws/credentials</code> — a drop-in replacement for <code>saml2aws login</code>.</span>
+        </p>
+        <div class="actions">
+          <a class="button" href="#install"><span class="ko">설치하기</span><span class="en">Install</span></a>
+          <a class="secondary" href="https://github.com/figurecurator/samlgate/releases/latest"><span class="ko">최신 릴리스</span><span class="en">Latest release</span> <span aria-hidden="true">↗</span></a>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="terminal" role="img" aria-label="samlgate login, then aws sts get-caller-identity --profile saml">
+          <div class="terminal-bar"><span class="terminal-dots" aria-hidden="true"><i></i><i></i><i></i></span><span>shell</span></div>
+          <div class="terminal-code" aria-hidden="true">
+            <p><span class="prompt">$ </span><code>samlgate login</code></p>
+            <p class="terminal-caption"><span class="ko">브라우저에서 SAML 로그인 → 창이 저절로 닫힘</span><span class="en">SAML sign-in in the browser → window closes itself</span></p>
+            <p><span class="prompt">$ </span><code>aws sts get-caller-identity --profile saml</code></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel agent" id="agent" aria-labelledby="agent-title">
+      <div class="section-head">
+        <p class="eyebrow">01</p>
+        <h2 id="agent-title"><span class="ko">코딩 에이전트로 설정하기</span><span class="en">Set up with your coding agent</span></h2>
+        <p>
+          <span class="ko">Claude Code나 Codex에 아래 문장을 붙여 넣으면 설치, 첫 로그인, 에이전트 지침 추가까지 진행합니다.</span>
+          <span class="en">Paste this into Claude Code or Codex. It installs samlgate, walks you through the first sign-in and adds usage notes to your agent's instructions.</span>
+        </p>
+      </div>
+      <div class="prompt-box">
+        <pre class="prompt-code" id="agent-setup-prompt" tabindex="0"><code>Set up samlgate for AWS sign-in on this computer by following
+https://raw.githubusercontent.com/figurecurator/samlgate/main/docs/agent-setup.md</code></pre>
+        <button class="copy-button" type="button" data-copy-target="agent-setup-prompt">
+          <span class="copy-label" data-state="idle"><span class="ko">복사</span><span class="en">Copy</span></span>
+          <span class="copy-label" data-state="done" hidden><span class="ko">복사됨</span><span class="en">Copied</span></span>
+        </button>
+      </div>
+      <p class="copy-status" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="install" id="install" aria-labelledby="install-title">
+      <div class="section-head">
+        <p class="eyebrow">02</p>
+        <h2 id="install-title"><span class="ko">직접 설치하기</span><span class="en">Install it yourself</span></h2>
+      </div>
+      <div class="grid two">
+        <article class="card">
+          <h3>Windows</h3>
+          <p><span class="ko">관리자 PowerShell에서 Chocolatey로 설치합니다.</span><span class="en">Install with Chocolatey from an elevated PowerShell.</span></p>
+          <pre class="code"><code>choco install samlgate -y
+samlgate --version</code></pre>
+          <p class="note"><span class="ko">x64·ARM64 ZIP은 <a href="https://github.com/figurecurator/samlgate/releases/latest">릴리스</a>에서 받을 수 있습니다. Microsoft Edge(기본 설치) 또는 Chrome·Brave·Chromium·Whale이 필요합니다.</span><span class="en">x64 and ARM64 ZIPs are on the <a href="https://github.com/figurecurator/samlgate/releases/latest">releases page</a>. Needs Microsoft Edge (preinstalled) or Chrome, Brave, Chromium or Whale.</span></p>
+        </article>
+        <article class="card">
+          <h3>macOS (Apple Silicon)</h3>
+          <p><span class="ko">Homebrew로 설치합니다.</span><span class="en">Install with Homebrew.</span></p>
+          <pre class="code"><code>brew install figurecurator/tap/samlgate
+samlgate --version</code></pre>
+          <p class="note"><span class="ko">Microsoft Edge 또는 Chrome(혹은 Brave·Chromium·Whale)이 필요합니다. Intel Mac은 소스 빌드만 가능합니다.</span><span class="en">Needs Microsoft Edge or Chrome (or Brave, Chromium, Whale). Intel Macs: build from source.</span></p>
+        </article>
+      </div>
+
+      <h3 class="sub"><span class="ko">처음 쓰기</span><span class="en">Quick start</span></h3>
+      <pre class="code wide"><code><span class="comment"># <span class="ko">1. IdP 로그인 URL 저장 (saml2aws를 쓰고 있었다면 생략)</span><span class="en">1. Save your IdP sign-in URL (skip if you already use saml2aws)</span></span>
+samlgate configure --url "https://launcher.myapps.microsoft.com/api/signin/&lt;app-id&gt;?tenantId=&lt;tenant-id&gt;"
+
+<span class="comment"># <span class="ko">2. 로그인 — ~/.aws/credentials의 [saml] 프로필에 저장</span><span class="en">2. Sign in — writes the [saml] profile to ~/.aws/credentials</span></span>
+samlgate login
+
+<span class="comment"># <span class="ko">3. 사용</span><span class="en">3. Use it</span></span>
+aws sts get-caller-identity --profile saml
+samlgate status</code></pre>
+      <p class="note">
+        <span class="ko">Microsoft Entra ID에서는 엔터프라이즈 애플리케이션 → AWS 앱 → 속성 → <b>사용자 액세스 URL</b>이 로그인 URL입니다. 첫 로그인에서 "로그인 상태를 유지하시겠습니까?"에 <b>예</b>를 누르면 다음 갱신 때 세션을 다시 쓸 수 있습니다.</span>
+        <span class="en">In Microsoft Entra ID the sign-in URL is Enterprise applications → your AWS app → Properties → <b>User access URL</b>. Answer <b>Yes</b> to "Stay signed in?" on the first sign-in so later renewals can reuse the session.</span>
+      </p>
+    </section>
+
+    <section class="how" id="how" aria-labelledby="how-title">
+      <div class="section-head">
+        <p class="eyebrow">03</p>
+        <h2 id="how-title"><span class="ko">동작 방식</span><span class="en">How it works</span></h2>
+        <p>
+          <span class="ko">SAML에는 <code>localhost</code> 콜백이 없습니다. 로그인 뒤 IdP는 브라우저가 <code>SAMLResponse</code>를 AWS 엔드포인트로 POST하게 하는데, samlgate가 그 요청을 가로챕니다.</span>
+          <span class="en">SAML has no <code>localhost</code> callback. After sign-in the IdP makes the browser POST the <code>SAMLResponse</code> to a fixed AWS endpoint — samlgate intercepts exactly that request.</span>
+        </p>
+      </div>
+      <ol class="steps">
+        <li><span class="ko">전용 프로필로 Edge/Chrome을 엽니다.</span><span class="en">Opens Edge/Chrome on a dedicated profile.</span></li>
+        <li><span class="ko">AWS로 가는 SAML POST를 가로챕니다. 이 요청은 AWS에 도달하지 않습니다.</span><span class="en">Intercepts the SAML POST to AWS — it never reaches AWS.</span></li>
+        <li><span class="ko">로컬 완료 페이지로 응답하고 브라우저를 닫습니다.</span><span class="en">Answers with a local "you can close this window" page and closes the browser.</span></li>
+        <li><span class="ko">STS <code>AssumeRoleWithSAML</code>을 호출해 프로필에 씁니다.</span><span class="en">Calls STS <code>AssumeRoleWithSAML</code> and writes the profile.</span></li>
+      </ol>
+      <div class="grid three">
+        <article class="card">
+          <h3><span class="ko">saml2aws 그대로</span><span class="en">saml2aws-compatible</span></h3>
+          <p><span class="ko"><code>~/.saml2aws</code> 설정을 읽고, 같은 형식으로 자격 증명을 씁니다. <code>saml2aws login -a work</code> 대신 <code>samlgate login -a work</code>.</span><span class="en">Reads <code>~/.saml2aws</code> and writes credentials in the same format. Replace <code>saml2aws login -a work</code> with <code>samlgate login -a work</code>.</span></p>
+        </article>
+        <article class="card">
+          <h3><span class="ko">MFA·조건부 액세스 그대로</span><span class="en">Real browser, real MFA</span></h3>
+          <p><span class="ko">터미널에 비밀번호를 입력하지 않습니다. 실제 브라우저에서 IdP가 요구하는 MFA와 정책을 그대로 거칩니다.</span><span class="en">No password prompt in the terminal. Your IdP's MFA and Conditional Access run in a real browser.</span></p>
+        </article>
+        <article class="card">
+          <h3><span class="ko">가벼운 단일 실행 파일</span><span class="en">One small native binary</span></h3>
+          <p><span class="ko">런타임, Playwright, 브라우저 드라이버를 내려받지 않습니다. 텔레메트리도 없습니다.</span><span class="en">No runtime, no Playwright, no browser-driver downloads. No telemetry.</span></p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer wrap">
+    <nav aria-label="Links">
+      <a href="https://github.com/figurecurator/samlgate#readme">README</a>
+      <a href="https://github.com/figurecurator/samlgate/blob/main/README.ko.md">README (한국어)</a>
+      <a href="https://github.com/figurecurator/samlgate/releases">Releases</a>
+      <a href="https://github.com/figurecurator/samlgate/issues">Issues</a>
+    </nav>
+    <p><span class="ko">MIT 라이선스 · <a href="https://rainbowsoft.co.kr/">RainbowSoft</a>에서 만듭니다.</span><span class="en">MIT licensed · made by <a href="https://rainbowsoft.co.kr/">RainbowSoft</a>.</span></p>
+  </footer>
+
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var toggle = document.getElementById("lang-toggle");
+      function setLang(lang) {
+        root.lang = lang;
+        root.dataset.lang = lang;
+        document.title = lang === "ko"
+          ? "samlgate · 브라우저 로그인으로 AWS CLI 시작하기"
+          : "samlgate · AWS credentials from a browser sign-in";
+        try { localStorage.setItem("samlgate-lang", lang); } catch (e) {}
+      }
+      setLang(root.dataset.lang === "en" ? "en" : "ko");
+      toggle.addEventListener("click", function () {
+        setLang(root.dataset.lang === "ko" ? "en" : "ko");
+      });
+
+      var messages = {
+        copied: { ko: "설정 문장을 클립보드에 복사했습니다.", en: "Copied the setup prompt to the clipboard." },
+        selected: { ko: "자동 복사를 쓸 수 없어 문장을 선택했습니다. Ctrl+C 또는 ⌘C로 복사하세요.", en: "Couldn't copy automatically, so the prompt is selected. Press Ctrl+C or ⌘C." }
+      };
+      document.querySelectorAll("[data-copy-target]").forEach(function (button) {
+        var target = document.getElementById(button.dataset.copyTarget);
+        var status = button.closest("section").querySelector(".copy-status");
+        var idle = button.querySelector('[data-state="idle"]');
+        var done = button.querySelector('[data-state="done"]');
+        var timer;
+        function show(copied, key) {
+          idle.hidden = copied;
+          done.hidden = !copied;
+          status.textContent = messages[key][root.dataset.lang];
+          clearTimeout(timer);
+          timer = setTimeout(function () { idle.hidden = false; done.hidden = true; status.textContent = ""; }, 2500);
+        }
+        function selectText() {
+          var range = document.createRange();
+          range.selectNodeContents(target);
+          var selection = window.getSelection();
+          selection.removeAllRanges();
+          selection.addRange(range);
+          target.focus();
+          show(false, "selected");
+        }
+        button.addEventListener("click", function () {
+          if (!navigator.clipboard || !window.isSecureContext) { selectText(); return; }
+          navigator.clipboard.writeText(target.textContent).then(function () { show(true, "copied"); }, selectText);
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
