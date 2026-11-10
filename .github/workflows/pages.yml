@@ -9,10 +9,9 @@ on:
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
+# Only the deploy job can publish or request an OIDC token.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 # One deployment at a time; let an in-progress production deployment finish.
 concurrency:
@@ -25,14 +24,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Setup Pages
-        uses: actions/configure-pages@v6
+        with:
+          persist-credentials: false
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5
         with:
           path: site
 
   deploy:
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
