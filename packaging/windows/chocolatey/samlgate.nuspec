@@ -8,6 +8,7 @@
     <owners>rainbowsoft</owners>
     <copyright>Rainbowsoft</copyright>
     <projectUrl>https://github.com/figurecurator/samlgate</projectUrl>
+    <iconUrl>https://samlgate.rainbowsoft.co.kr/favicon.png</iconUrl>
     <projectSourceUrl>https://github.com/figurecurator/samlgate</projectSourceUrl>
     <packageSourceUrl>https://github.com/figurecurator/samlgate/tree/main/packaging/windows/chocolatey</packageSourceUrl>
     <docsUrl>https://github.com/figurecurator/samlgate#readme</docsUrl>
