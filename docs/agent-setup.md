@@ -84,28 +84,33 @@ signed in?", and pick a role in the terminal if asked.** Then run:
 samlgate login --force [-a <account>]
 ```
 
-Continue only if this exits with code 0. If it fails, times out or the user cancels, stop and report the error —
-do not run the identity check, because the profile may still hold older credentials that would hide the failure.
-`--force` makes samlgate visit the IdP even if the profile already holds valid credentials, so this step really tests
-the configuration. Then:
+Continue only if this exits with code 0. `--force` makes samlgate visit the IdP even if the profile already holds
+valid credentials, so this step really tests the configuration.
+
+- If it fails with "Multiple roles are available and none is selected" (your terminal could not answer the role
+  prompt), ask the user which role ARN to use and retry once with
+  `samlgate login --force [-a <account>] --role <arn>`.
+- For any other failure, a timeout or a cancellation, stop and report the error. Do not run the identity check,
+  because the profile may still hold older credentials that would hide the failure.
+
+After the login (or the retry) exits with code 0, run:
 
 ```bash
 aws sts get-caller-identity --profile <profile>
 ```
- If the account sets `credentials_file`, run the AWS CLI with
+
+If the account sets `credentials_file`, run the AWS CLI with
 `AWS_SHARED_CREDENTIALS_FILE=<that path>` (or use `samlgate exec [-a <account>] -- aws sts get-caller-identity`).
 Show the returned account and role to the user and confirm it is the one they expected.
 
-If several roles exist and your terminal cannot answer the role prompt, ask the user which role ARN to use and run
-`samlgate login --force [-a <account>] --role <arn>`.
-
-Whether later renewals can skip the window depends on the effective `browser_mode`. `webview` is always
-interactive. When `browser_mode` is unset, the default depends on the build (released packages up to 0.2.2 use
-`interactive`; newer builds use `auto` for Chromium), and the version number alone does not tell you which — so treat
-an unset mode as `interactive`. With `auto`, a
-stored IdP session is reused without a window (about 3 seconds) while the IdP allows it, and the window opens
-otherwise. If the user wants windowless renewals and the account uses a Chromium browser, offer to run
-`samlgate configure [-a <account>] --browser-mode auto` (after they agree).
+Whether later renewals can skip the window depends on the effective `browser_mode`. An explicit `auto` tries the
+stored session without a window; an explicit `interactive`, or `browser_type = webview`, always opens one. When
+`browser_mode` is unset, the effective mode is **unknown**: released packages up to 0.2.2 use `interactive`, newer
+builds use `auto` for Chromium, and the version number alone does not tell them apart. Do not tell the user renewals
+will be windowless in that case. With `auto`, a stored IdP session is reused without a window (about 3 seconds) while
+the IdP allows it, and the window opens otherwise. If the user wants windowless renewals and the account uses a
+Chromium browser, offer to run `samlgate configure [-a <account>] --browser-mode auto` (after they agree) so the mode
+is explicit.
 
 ## 5. Remember how to use it
 
@@ -118,7 +123,7 @@ show them the text.
 
 Replace `saml` with the configured profile, add `-a <account>` to every command if a non-default account is used,
 and mention `AWS_SHARED_CREDENTIALS_FILE=<path>` if the account sets `credentials_file`. Keep the second bullet only
-if the effective mode is `auto`; otherwise say that renewal opens a sign-in window. Write it in the user's language if
+if `browser_mode = auto` is set explicitly; otherwise say that renewal may open a sign-in window. Write it in the user's language if
 they prefer.
 
 ```markdown
