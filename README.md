@@ -140,6 +140,16 @@ samlgate status
 Already using saml2aws? Skip step 1 — samlgate reads the same account from `~/.saml2aws` when `~/.samlgate` does
 not have it.
 
+### Set up with a coding agent
+
+Paste this into Claude Code, Codex or another coding agent on your computer. It installs samlgate, walks you through
+the first sign-in and adds `samlgate login` to the agent's own instructions ([what it does](docs/agent-setup.md)):
+
+```text
+Set up samlgate for AWS sign-in on this computer by following
+https://raw.githubusercontent.com/figurecurator/samlgate/main/docs/agent-setup.md
+```
+
 ### Moving from saml2aws
 
 Keep your existing configuration and replace `saml2aws login -a work` with `samlgate login -a work`.
@@ -155,8 +165,9 @@ The dedicated browser profile is separate from your everyday browser, so the fir
 2. **While the credentials are valid** (more than 5 minutes left), `samlgate login` only prints the session and
    opens nothing. Measured: 0.12 s on an M4 Pro MacBook Pro (macOS 27.2, Homebrew 0.2.0 build).
 3. **When renewal is needed**, `samlgate login` opens the browser and attempts to reuse the stored IdP session.
-   With `browser_mode = auto` (Chromium only), an existing profile is tried headlessly first; if the silent attempt
-   times out, an interactive window opens for sign-in or MFA. Passwordless reuse depends on the IdP's policies.
+   By default (`browser_mode = auto`, Chromium only), an existing profile is tried headlessly first — no window
+   appears when the IdP session is still valid. If the silent attempt times out, an interactive window opens for
+   sign-in or MFA. Passwordless reuse depends on the IdP's policies. Set `browser_mode = interactive` to always see the window.
 4. Use `--force` to sign in again early. To switch a configured role, also pass `--role <arn>`; `--force` alone
    keeps `role_arn`. Remove `role_arn` to use the role picker when multiple roles are available. `samlgate status` (exit code `0` if valid) is
    the check for scripts.
@@ -194,18 +205,21 @@ Chrome, Edge, Brave, Chromium and Whale use the same CDP capture backend. Use `-
 # Explicit language selection can help when an IdP's localized assets fail to load.
 samlgate login --browser chrome --browser-language en-US
 
-# Revisit the IdP even if current AWS credentials are valid; try the stored session first.
+# Revisit the IdP even if current AWS credentials are valid; the stored session is tried without a window first.
 samlgate login --browser chrome --browser-mode auto --browser-language en-US --force
 
+# Always show the browser window instead (skip the headless attempt).
+samlgate login --browser-mode interactive --force
+
 # Save preferences for future logins.
-samlgate configure --url "<IdP sign-in URL>" --browser chrome --browser-language en-US --browser-mode auto
+samlgate configure --url "<IdP sign-in URL>" --browser chrome --browser-language en-US --browser-mode interactive
 ```
 
-The default remains an interactive window with no language override. No language is automatically forced for a particular IdP. `--browser-language` accepts one language tag; remove `browser_language` from the account configuration to return to the browser default.
+There is no language override by default. No language is automatically forced for a particular IdP. `--browser-language` accepts one language tag; remove `browser_language` from the account configuration to return to the browser default.
 
-In `auto` mode, a profile that already exists is tried with `--headless=new`. If no SAML arrives before `--silent-timeout` (default 20 seconds), that browser is closed before an interactive browser opens on the same profile. A new profile goes directly to an interactive window. The silent attempt and interactive sign-in share `--timeout`; caller cancellation, browser launch failures and malformed ACS responses do not trigger fallback. Valid AWS credentials still skip browser login unless `--force` is used.
+In `auto` mode — the default for Chromium browsers — a profile that already exists is tried with `--headless=new`. If no SAML arrives before `--silent-timeout` (default 20 seconds), that browser is closed before an interactive browser opens on the same profile. A new profile goes directly to an interactive window. The silent attempt and interactive sign-in share `--timeout`; caller cancellation, browser launch failures and malformed ACS responses do not trigger fallback. Valid AWS credentials still skip browser login unless `--force` is used.
 
-Silent refresh does not enter passwords, approve passkeys or bypass IdP policies. Reauthentication requires a user-controlled graphical browser; this option does not provide SSH/cloud user handoff. The native `webview` backend rejects Chromium language/auto preferences instead of silently ignoring them. Native and Chromium sessions are separate.
+Silent refresh does not enter passwords, approve passkeys or bypass IdP policies. Reauthentication requires a user-controlled graphical browser; this option does not provide SSH/cloud user handoff. The native `webview` backend defaults to `interactive` and rejects an explicit Chromium language/auto preference instead of silently ignoring it. Native and Chromium sessions are separate.
 
 ### Roles
 
@@ -243,7 +257,7 @@ saml2aws, so you can copy `~/.saml2aws` as-is; unknown keys are ignored.
 | `browser_type` | auto-detected Chromium | `edge`/`msedge`, `chrome`, `brave`, `chromium`, `whale`, or experimental `webview` (macOS 14+). |
 | `browser_executable_path` | auto-detected | |
 | `browser_language` | browser default | Optional single language tag, such as `en-US`; Chromium only. |
-| `browser_mode` | `interactive` | `auto` attempts a short headless refresh of an existing Chromium profile, then opens a window if needed. |
+| `browser_mode` | `auto` (Chromium), `interactive` (webview) | `auto` attempts a short headless refresh of an existing Chromium profile, then opens a window if needed. `interactive` always opens a window. |
 | `silent_timeout` | `20` | Silent attempt limit in seconds, within the overall sign-in timeout. |
 | `target_url` | AWS ACS URLs | Additional URL to intercept (custom ACS). |
 

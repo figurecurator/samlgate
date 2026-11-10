@@ -95,7 +95,7 @@ public static class SamlCaptureFactory
 {
     public static ISamlCapture Create(string? browserType, string? executablePath)
     {
-        if (browserType?.Trim().Equals("webview", StringComparison.OrdinalIgnoreCase) == true)
+        if (BrowserPreferences.IsWebView(browserType))
         {
             if (!OperatingSystem.IsMacOSVersionAtLeast(14))
             {

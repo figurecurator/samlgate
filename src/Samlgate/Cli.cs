@@ -23,7 +23,7 @@ internal static class Cli
     public static readonly Option<string?> Browser = new("--browser") { Description = "edge | chrome | brave | chromium | whale | webview (macOS 14+)", HelpName = "kind" };
     public static readonly Option<string?> BrowserPath = new("--browser-path") { Description = "Browser executable", HelpName = "path" };
     public static readonly Option<string?> BrowserLanguage = new("--browser-language") { Description = "Chromium language tag (e.g. en-US); unset keeps the browser default", HelpName = "tag" };
-    public static readonly Option<string?> BrowserMode = new("--browser-mode") { Description = "interactive (default) | auto (try an existing session without a window first)", HelpName = "mode" };
+    public static readonly Option<string?> BrowserMode = new("--browser-mode") { Description = "auto (default for Chromium: try the stored session without a window first) | interactive (always open a window)", HelpName = "mode" };
     public static readonly Option<int?> SilentTimeout = Positive(new Option<int?>("--silent-timeout") { Description = "Seconds to wait for a silent session refresh (default: 20), within --timeout", HelpName = "seconds" });
     public static readonly Option<string?> TargetUrl = new("--target-url") { Description = "Additional ACS URL to intercept", HelpName = "url" };
     public static readonly Option<string?> CredentialsFile = new("--credentials-file") { Description = "Credentials file (default: ~/.aws/credentials)", HelpName = "path" };

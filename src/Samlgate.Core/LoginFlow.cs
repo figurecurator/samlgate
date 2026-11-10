@@ -64,7 +64,7 @@ public sealed class LoginFlow(StsClient sts, StateStore state, ISamlCapture? cap
             TargetUrl = account.TargetUrl,
             Timeout = options.Timeout,
             Language = BrowserPreferences.ValidateLanguage(account.BrowserLanguage),
-            Mode = BrowserPreferences.ParseMode(account.BrowserMode),
+            Mode = BrowserPreferences.ResolveMode(account.BrowserMode, account.BrowserType),
             SilentTimeout = TimeSpan.FromSeconds(account.SilentTimeoutSeconds ?? 20),
         }, options.OnStatus, cancellationToken);
     }
