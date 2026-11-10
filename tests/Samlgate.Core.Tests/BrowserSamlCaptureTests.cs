@@ -76,6 +76,7 @@ public class BrowserSamlCaptureTests
 
     [Fact]
     [Trait("Category", "Browser")]
+    [Trait("Category", "HeadedBrowser")] // the interactive fallback opens a visible window by design
     public async Task AutoMode_ReusesProfileAfterSilentTimeoutInRealBrowser()
     {
         if (FindBrowser() is not { } browser)

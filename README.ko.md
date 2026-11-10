@@ -257,6 +257,41 @@ macOS `~/Library/Application Support/samlgate`).
 
 CI는 GitHub의 `macos-15`(Apple Silicon)와 `windows-latest` 러너에서 빌드·테스트합니다.
 
+### Chromium 브라우저 호환성
+
+`Browser` 테스트 범주는 로컬 합성 페이지만 사용해 실제 브라우저에서 CDP 캡처를 실행합니다. 확인하는 항목은 다음과 같습니다.
+
+- 역할 1개·300개 ACS 가로채기
+- `SAMLResponse`가 없을 때 실패
+- `--browser-language`
+- `browser_mode = auto`: 헤드리스 시도, 대화형 창 대체, 전용 프로필 헤드리스 재사용
+
+| 브라우저 | macOS 27.2, Apple Silicon (2026-11-10) | Windows |
+|---|---|---|
+| Chrome | 157.0.8103.50 — 5/5 통과 | 미검증 |
+| Edge | 157.0.4341.42 — 5/5 통과 | CI(`windows-latest`, 기본 설치 Edge) |
+| Whale | 5.41.429.3 — 5/5 통과 | 미검증 |
+| Brave | 157.1.99.55 — 5/5 통과 | 미검증 |
+| Chromium | 제외: 일반 사용자가 거의 설치하지 않고 엔진·CDP가 Chrome과 같음 | 제외 |
+
+macOS에서는 확인한 브라우저 모두 기본 위치인 `/Applications/<앱>.app`에서 찾았습니다(예: `/Applications/Whale.app/Contents/MacOS/Whale`). Windows Edge 버전은 CI 러너에 기본 설치된 버전이며 따로 기록하지 않았습니다.
+
+브라우저별로 재현하려면 종류를 명시하세요. 종류를 지정하면 다른 브라우저로 대체하지 않습니다. 브라우저를 찾지 못하면 테스트가 바로 끝나며 그래도 통과로 표시됩니다. restore·빌드 시간이 포함되는 명령 전체 실행 시간으로 판단하지 마세요. 대신 위 경로에 실행 파일이 있는지, 그리고 `AutoMode_ReusesProfileAfterSilentTimeoutInRealBrowser` 테스트 하나가 밀리초가 아니라 약 30초 이상 걸렸는지 확인하세요.
+
+```bash
+SAMLGATE_TEST_BROWSER=whale dotnet test samlgate.slnx -c Release --filter 'Category=Browser' --logger "console;verbosity=normal"
+```
+
+auto 모드 테스트는 의도적으로 대화형 창을 하나 엽니다. 다음 항목은 모든 칸에서 **미검증**입니다.
+
+- `--browser-path` 지정
+- 프레임·팝업
+- 취소·제한 시간
+- sandbox 확인
+- 각 Chromium 브라우저에서의 실제 로그인
+
+프로세스 정리는 매 실행 뒤 CDP 브라우저가 남지 않았는지만 확인했습니다. 단독 Chromium은 기본 브라우저로 배포하는 배포판이 많은 Linux를 지원할 때 확인합니다.
+
 ## 보안
 
 - SAML assertion은 AWS STS로만 전송됩니다. 가로챈 ACS 요청은 로컬에서 응답합니다.
@@ -275,9 +310,30 @@ CI는 GitHub의 `macos-15`(Apple Silicon)와 `windows-latest` 러너에서 빌�
 ## 개발
 
 ```bash
-dotnet test samlgate.slnx          # 단위 테스트 + (Edge/Chrome이 있으면) 헤드리스 브라우저 가로채기 테스트
+dotnet test samlgate.slnx          # 전체 실행, 브라우저 창이 뜹니다(아래 참고)
 dotnet run --project src/Samlgate -- help
 ```
+
+브라우저 테스트는 로컬 합성 페이지만 사용합니다. 평소 실행에서 창이 뜨지 않도록 테스트 범주로 나뉩니다.
+
+| 범주 | 테스트 | 창 |
+|---|---|---|
+| (없음) | 단위 테스트 | 없음 |
+| `Browser` 중 `HeadedBrowser`가 아닌 것 | 헤드리스 Chromium 캡처 | 없음 |
+| `HeadedBrowser` | Chromium `browser_mode = auto`의 대화형 창 대체 | 포커스를 가져가는 창 1개(약 30–40초) |
+| `NativeBrowser` | macOS WKWebView 헬퍼 | 테스트마다 포커스를 가져가는 창(실행당 11개) |
+
+```bash
+# 평소 실행: 창이 뜨거나 포커스를 가져가지 않습니다(macOS 27.2에서 확인)
+dotnet test samlgate.slnx --filter 'Category!=NativeBrowser&Category!=HeadedBrowser'
+
+# 창이 뜨는 테스트: 데스크톱을 쓰지 않을 때 실행
+dotnet test samlgate.slnx --filter 'Category=HeadedBrowser|Category=NativeBrowser'
+```
+
+CI는 모든 범주를 실행합니다. Chromium 브라우저는 `SAMLGATE_TEST_BROWSER=<종류>`로 고릅니다([Chromium 브라우저 호환성](#chromium-브라우저-호환성) 참고).
+
+네이티브 WebView에는 숨김·헤드리스 모드가 없어 테스트가 항상 창을 엽니다. 숨겨진 WKWebView가 팝업·새 창·창 닫기 취소에서 보이는 창과 똑같이 동작한다는 것은 확인되지 않았습니다. 그러므로 화면 밖 창에 기대지 말고 이 테스트들은 창을 띄운 채 유지하세요.
 
 `src/Samlgate.Core`에 테스트 가능한 로직(설정, SAML 파싱, STS, credentials 파일, DevTools 가로채기)이 모두 있고
 `src/Samlgate`는 얇은 CLI입니다(System.CommandLine). STS는 AWSSDK.SecurityToken으로 호출합니다.

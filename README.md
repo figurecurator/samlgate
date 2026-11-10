@@ -266,6 +266,41 @@ The credentials profile contains `aws_access_key_id`, `aws_secret_access_key`, `
 
 CI builds and tests on GitHub's `macos-15` (Apple Silicon) and `windows-latest` runners.
 
+### Chromium browser compatibility
+
+The `Browser` test category runs the CDP capture against a real browser using local synthetic pages only. It covers:
+
+- ACS interception with 1 and 300 roles
+- failure when no `SAMLResponse` is present
+- `--browser-language`
+- `browser_mode = auto`: a headless attempt, a headed fallback, then headless reuse of the dedicated profile
+
+| Browser | macOS 27.2, Apple Silicon (2026-11-10) | Windows |
+|---|---|---|
+| Chrome | 157.0.8103.50 — 5/5 passed | Untested |
+| Edge | 157.0.4341.42 — 5/5 passed | CI (`windows-latest`, preinstalled Edge) |
+| Whale | 5.41.429.3 — 5/5 passed | Untested |
+| Brave | 157.1.99.55 — 5/5 passed | Untested |
+| Chromium | Not tested: rarely installed by end users; same engine and CDP as Chrome | Not tested |
+
+On macOS every tested browser was found at its default location, `/Applications/<App>.app` (for example `/Applications/Whale.app/Contents/MacOS/Whale`). The Windows Edge version is whatever the CI runner preinstalls and is not recorded.
+
+To reproduce for one browser, name it explicitly. With an explicit kind the locator never falls back to another browser. If the browser is not found, these tests return early and still pass. Do not judge this by the total command time, which includes restore and build. Instead, check that the browser executable exists at the path above, and that `AutoMode_ReusesProfileAfterSilentTimeoutInRealBrowser` alone takes about 30 s or more rather than milliseconds:
+
+```bash
+SAMLGATE_TEST_BROWSER=whale dotnet test samlgate.slnx -c Release --filter 'Category=Browser' --logger "console;verbosity=normal"
+```
+
+The auto-mode test intentionally opens one headed window. The following are **untested** in every cell:
+
+- `--browser-path` overrides
+- frames and popups
+- cancellation and deadlines
+- sandbox assertions
+- a real sign-in through each Chromium browser
+
+Process cleanup was checked only by confirming that no CDP browser remained after each run. Standalone Chromium should be tested once Linux is supported, where distributions ship it as the default browser.
+
 ## Security notes
 
 - The SAML assertion is only sent to AWS STS. The intercepted ACS request is answered locally.
@@ -284,9 +319,30 @@ CI builds and tests on GitHub's `macos-15` (Apple Silicon) and `windows-latest` 
 ## Development
 
 ```bash
-dotnet test samlgate.slnx          # unit tests + a headless-browser capture test if Edge/Chrome is installed
+dotnet test samlgate.slnx          # everything; opens browser windows (see below)
 dotnet run --project src/Samlgate -- help
 ```
+
+Browser tests use local synthetic pages only. They are grouped by test category so routine runs can stay quiet:
+
+| Category | Tests | Windows |
+|---|---|---|
+| (none) | Unit tests | None |
+| `Browser` without `HeadedBrowser` | Headless Chromium capture | None |
+| `HeadedBrowser` | Chromium `browser_mode = auto` headed fallback | One visible window that takes focus (~30–40 s) |
+| `NativeBrowser` | macOS WKWebView helper | One visible, focused window per test (11 per run) |
+
+```bash
+# Routine run: no window opens or takes focus (verified on macOS 27.2)
+dotnet test samlgate.slnx --filter 'Category!=NativeBrowser&Category!=HeadedBrowser'
+
+# Headed coverage, run when you can leave the desktop alone
+dotnet test samlgate.slnx --filter 'Category=HeadedBrowser|Category=NativeBrowser'
+```
+
+CI runs every category. `SAMLGATE_TEST_BROWSER=<kind>` selects the Chromium browser (see [Chromium browser compatibility](#chromium-browser-compatibility)).
+
+The native WebView has no hidden or headless mode. Its tests always open a window, and a hidden WKWebView has not been shown to behave like a visible one for popups, new windows or close-to-cancel. Keep those tests headed rather than relying on an offscreen window.
 
 `src/Samlgate.Core` holds everything testable (config, SAML parsing, STS, credentials file, DevTools capture);
 `src/Samlgate` is the thin CLI (System.CommandLine). STS is called through AWSSDK.SecurityToken.
