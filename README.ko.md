@@ -274,13 +274,23 @@ CI는 GitHub의 `macos-15`(Apple Silicon)와 `windows-latest` 러너에서 빌�
 | Brave | 157.1.99.55 — 5/5 통과 | 미검증 |
 | Chromium | 제외: 일반 사용자가 거의 설치하지 않고 엔진·CDP가 Chrome과 같음 | 제외 |
 
-브라우저별로 재현하려면 종류를 명시하세요. 종류를 지정하면 다른 브라우저로 대체하지 않습니다. 브라우저를 찾지 못하면 테스트가 바로 끝나며 통과로 표시되므로, 실행에 수십 초가 걸렸는지 확인하세요.
+macOS에서는 확인한 브라우저 모두 기본 위치인 `/Applications/<앱>.app`에서 찾았습니다(예: `/Applications/Whale.app/Contents/MacOS/Whale`). Windows Edge 버전은 CI 러너에 기본 설치된 버전이며 따로 기록하지 않았습니다.
+
+브라우저별로 재현하려면 종류를 명시하세요. 종류를 지정하면 다른 브라우저로 대체하지 않습니다. 브라우저를 찾지 못하면 테스트가 바로 끝나며 그래도 통과로 표시됩니다. restore·빌드 시간이 포함되는 명령 전체 실행 시간으로 판단하지 마세요. 대신 위 경로에 실행 파일이 있는지, 그리고 `AutoMode_ReusesProfileAfterSilentTimeoutInRealBrowser` 테스트 하나가 밀리초가 아니라 약 30초 이상 걸렸는지 확인하세요.
 
 ```bash
-SAMLGATE_TEST_BROWSER=whale dotnet test samlgate.slnx -c Release --filter 'Category=Browser'
+SAMLGATE_TEST_BROWSER=whale dotnet test samlgate.slnx -c Release --filter 'Category=Browser' --logger "console;verbosity=normal"
 ```
 
-auto 모드 테스트는 의도적으로 대화형 창을 하나 엽니다. 각 Chromium 브라우저에서의 실제 로그인은 이 표에 포함되지 않습니다. 단독 Chromium은 기본 브라우저로 배포하는 배포판이 많은 Linux를 지원할 때 확인합니다.
+auto 모드 테스트는 의도적으로 대화형 창을 하나 엽니다. 다음 항목은 모든 칸에서 **미검증**입니다.
+
+- `--browser-path` 지정
+- 프레임·팝업
+- 취소·제한 시간
+- sandbox 확인
+- 각 Chromium 브라우저에서의 실제 로그인
+
+프로세스 정리는 매 실행 뒤 CDP 브라우저가 남지 않았는지만 확인했습니다. 단독 Chromium은 기본 브라우저로 배포하는 배포판이 많은 Linux를 지원할 때 확인합니다.
 
 ## 보안
 

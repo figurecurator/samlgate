@@ -283,13 +283,23 @@ The `Browser` test category runs the CDP capture against a real browser using lo
 | Brave | 157.1.99.55 — 5/5 passed | Untested |
 | Chromium | Not tested: rarely installed by end users; same engine and CDP as Chrome | Not tested |
 
-To reproduce for one browser, name it explicitly. With an explicit kind the locator never falls back to another browser. If the browser is not found, these tests return early and pass, so check that the run actually took tens of seconds:
+On macOS every tested browser was found at its default location, `/Applications/<App>.app` (for example `/Applications/Whale.app/Contents/MacOS/Whale`). The Windows Edge version is whatever the CI runner preinstalls and is not recorded.
+
+To reproduce for one browser, name it explicitly. With an explicit kind the locator never falls back to another browser. If the browser is not found, these tests return early and still pass. Do not judge this by the total command time, which includes restore and build. Instead, check that the browser executable exists at the path above, and that `AutoMode_ReusesProfileAfterSilentTimeoutInRealBrowser` alone takes about 30 s or more rather than milliseconds:
 
 ```bash
-SAMLGATE_TEST_BROWSER=whale dotnet test samlgate.slnx -c Release --filter 'Category=Browser'
+SAMLGATE_TEST_BROWSER=whale dotnet test samlgate.slnx -c Release --filter 'Category=Browser' --logger "console;verbosity=normal"
 ```
 
-The auto-mode test intentionally opens one headed window. A real sign-in through each Chromium browser is not part of this matrix. Standalone Chromium should be tested once Linux is supported, where distributions ship it as the default browser.
+The auto-mode test intentionally opens one headed window. The following are **untested** in every cell:
+
+- `--browser-path` overrides
+- frames and popups
+- cancellation and deadlines
+- sandbox assertions
+- a real sign-in through each Chromium browser
+
+Process cleanup was checked only by confirming that no CDP browser remained after each run. Standalone Chromium should be tested once Linux is supported, where distributions ship it as the default browser.
 
 ## Security notes
 
