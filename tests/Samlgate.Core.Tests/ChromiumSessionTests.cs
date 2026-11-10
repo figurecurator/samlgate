@@ -23,12 +23,28 @@ public class ChromiumSessionTests
         Assert.Throws<SamlgateException>(() => BrowserPreferences.ValidateLanguage(input));
 
     [Fact]
-    public void Mode_DefaultsToInteractiveAndRejectsUnsupportedModes()
+    public void Mode_ParsesExplicitValuesAndRejectsUnsupportedModes()
     {
         Assert.Equal(BrowserCaptureMode.Interactive, BrowserPreferences.ParseMode(null));
         Assert.Equal(BrowserCaptureMode.Auto, BrowserPreferences.ParseMode("AUTO"));
         Assert.Throws<SamlgateException>(() => BrowserPreferences.ParseMode("headless"));
     }
+
+    [Theory]
+    [InlineData(null, null, BrowserCaptureMode.Auto)]
+    [InlineData("", "msedge", BrowserCaptureMode.Auto)]
+    [InlineData(null, "chrome", BrowserCaptureMode.Auto)]
+    [InlineData(null, "WebView", BrowserCaptureMode.Interactive)]
+    [InlineData("interactive", "msedge", BrowserCaptureMode.Interactive)]
+    [InlineData("auto", null, BrowserCaptureMode.Auto)]
+    [InlineData("interactive", "webview", BrowserCaptureMode.Interactive)]
+    public void ResolveMode_DefaultsToAutoForChromiumAndInteractiveForWebView(
+        string? mode, string? browserType, BrowserCaptureMode expected) =>
+        Assert.Equal(expected, BrowserPreferences.ResolveMode(mode, browserType));
+
+    [Fact]
+    public void ResolveMode_StillRejectsUnsupportedExplicitModes() =>
+        Assert.Throws<SamlgateException>(() => BrowserPreferences.ResolveMode("headless", "msedge"));
 
     [Theory]
     [InlineData(false, BrowserCaptureMode.Auto)]

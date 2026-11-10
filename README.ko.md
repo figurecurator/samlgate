@@ -136,6 +136,16 @@ samlgate status
 
 이미 saml2aws를 쓰고 있다면 1단계는 건너뛰세요 — `~/.samlgate`에 없는 계정은 `~/.saml2aws`에서 읽습니다.
 
+### 코딩 에이전트로 설정하기
+
+Claude Code, Codex 같은 코딩 에이전트에 아래 문장을 붙여 넣으면 samlgate 설치, 첫 로그인 안내, 에이전트 지침에
+`samlgate login` 사용법 추가까지 진행합니다([진행 내용](docs/agent-setup.md)):
+
+```text
+Set up samlgate for AWS sign-in on this computer by following
+https://raw.githubusercontent.com/figurecurator/samlgate/main/docs/agent-setup.md
+```
+
 ### saml2aws에서 옮기기
 
 기존 설정을 그대로 두고 `saml2aws login -a work`를 `samlgate login -a work`로 바꿉니다.
@@ -151,7 +161,7 @@ samlgate status
 2. **자격증명이 유효한 동안**(5분 넘게 남음) `samlgate login`은 세션 정보만 출력하고 아무 창도 열지 않습니다.
    측정값: M4 Pro MacBook Pro(macOS 27.2, Homebrew 0.2.0)에서 0.12초.
 3. **갱신이 필요하면** `samlgate login`은 브라우저를 열어 저장된 IdP 세션 재사용을 시도합니다.
-   `browser_mode = auto`(Chromium 전용)이고 기존 프로필이 있으면 먼저 헤드리스로 시도하며, 제한 시간이 지나면 로그인·MFA를 위한 창을 엽니다.
+   기본값(`browser_mode = auto`, Chromium 전용)에서는 기존 프로필이 있으면 먼저 헤드리스로 시도하므로 IdP 세션이 살아 있으면 창이 뜨지 않습니다. 제한 시간이 지나면 로그인·MFA를 위한 창을 엽니다. 항상 창을 보려면 `browser_mode = interactive`로 설정하세요.
    비밀번호 없이 재사용할 수 있는지는 IdP 정책에 따라 달라집니다.
 4. 일찍 다시 로그인하려면 `--force`를 쓰세요. 설정된 롤을 바꾸려면 `--role <arn>`도 지정해야 합니다. `--force`만으로는 `role_arn`이 유지됩니다.
    여러 롤 중 선택하려면 `role_arn` 설정을 제거하세요. 스크립트에서는 `samlgate status`(유효하면 종료 코드 `0`)로 확인합니다.
@@ -187,18 +197,21 @@ Chrome·Edge·Brave·Chromium·Whale은 같은 CDP 캡처 구현을 사용합니
 # IdP의 언어별 화면 리소스가 로드되지 않을 때 명시적으로 언어를 선택합니다.
 samlgate login --browser chrome --browser-language en-US
 
-# AWS 자격증명이 유효해도 IdP를 다시 방문하며, 기존 세션을 먼저 시도합니다.
-samlgate login --browser chrome --browser-mode auto --browser-language en-US --force
+# AWS 자격증명이 유효해도 IdP를 다시 방문하며, 기존 세션을 창 없이 먼저 시도합니다.
+samlgate login --browser chrome --browser-language en-US --force
+
+# 헤드리스 시도 없이 항상 브라우저 창을 엽니다.
+samlgate login --browser-mode interactive --force
 
 # 이후 로그인에 사용할 설정을 저장합니다.
-samlgate configure --url "<IdP 로그인 URL>" --browser chrome --browser-language en-US --browser-mode auto
+samlgate configure --url "<IdP 로그인 URL>" --browser chrome --browser-language en-US --browser-mode interactive
 ```
 
-기본값은 언어를 강제하지 않는 대화형 창입니다. 특정 IdP에 대한 자동 언어 우회는 추가하지 않습니다. `--browser-language`는 단일 언어 태그를 받으며, 기본 언어로 돌아가려면 계정 설정의 `browser_language`를 제거하세요.
+기본적으로 언어를 강제하지 않습니다. 특정 IdP에 대한 자동 언어 우회는 추가하지 않습니다. `--browser-language`는 단일 언어 태그를 받으며, 기본 언어로 돌아가려면 계정 설정의 `browser_language`를 제거하세요.
 
-`auto` 모드는 기존 프로필이 있을 때 `--headless=new`로 시도합니다. `--silent-timeout`(기본 20초) 안에 SAML이 오지 않으면 헤드리스 브라우저를 닫은 뒤 같은 프로필로 대화형 창을 엽니다. 새 프로필은 곧바로 대화형 창을 엽니다. 두 시도는 전체 `--timeout`을 공유하며, 사용자 취소·브라우저 실행 오류·읽을 수 없는 ACS 응답은 자동 재시도하지 않습니다. 유효한 AWS 자격증명이 있으면 기존처럼 브라우저를 생략하므로 갱신 검증에는 `--force`를 사용하세요.
+Chromium 브라우저의 기본값인 `auto` 모드는 기존 프로필이 있을 때 `--headless=new`로 시도합니다. `--silent-timeout`(기본 20초) 안에 SAML이 오지 않으면 헤드리스 브라우저를 닫은 뒤 같은 프로필로 대화형 창을 엽니다. 새 프로필은 곧바로 대화형 창을 엽니다. 두 시도는 전체 `--timeout`을 공유하며, 사용자 취소·브라우저 실행 오류·읽을 수 없는 ACS 응답은 자동 재시도하지 않습니다. 유효한 AWS 자격증명이 있으면 기존처럼 브라우저를 생략하므로 갱신 검증에는 `--force`를 사용하세요.
 
-무인 갱신은 비밀번호 입력·패스키 승인·IdP 정책 우회를 수행하지 않습니다. 재인증에는 사용자가 제어할 수 있는 그래픽 브라우저가 필요하며 SSH·클라우드 사용자 핸드오프를 제공하지 않습니다. 네이티브 `webview`는 Chromium 언어·auto 옵션을 무시하지 않고 오류로 안내합니다. 두 구현의 세션은 분리됩니다.
+무인 갱신은 비밀번호 입력·패스키 승인·IdP 정책 우회를 수행하지 않습니다. 재인증에는 사용자가 제어할 수 있는 그래픽 브라우저가 필요하며 SSH·클라우드 사용자 핸드오프를 제공하지 않습니다. 네이티브 `webview`는 기본값이 `interactive`이며, 명시한 Chromium 언어·auto 옵션은 무시하지 않고 오류로 안내합니다. 두 구현의 세션은 분리됩니다.
 
 ### 롤
 
@@ -234,7 +247,7 @@ region = ap-northeast-2
 | `browser_type` | Chromium 자동 탐색 | `edge`/`msedge`, `chrome`, `brave`, `chromium`, `whale`, `webview`(macOS 14 이상, 실험 기능) |
 | `browser_executable_path` | 자동 탐색 | |
 | `browser_language` | 브라우저 기본값 | 단일 언어 태그(예: `en-US`), Chromium 전용 |
-| `browser_mode` | `interactive` | `auto`는 기존 Chromium 프로필을 헤드리스로 짧게 시도한 뒤 필요하면 창을 엽니다 |
+| `browser_mode` | `auto`(Chromium), `interactive`(webview) | `auto`는 기존 Chromium 프로필을 헤드리스로 짧게 시도한 뒤 필요하면 창을 엽니다. `interactive`는 항상 창을 엽니다 |
 | `silent_timeout` | `20` | 전체 로그인 시간 제한 안에서 무인 갱신을 기다리는 초 |
 | `target_url` | AWS ACS URL | 추가로 가로챌 URL (커스텀 ACS) |
 

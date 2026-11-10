@@ -42,7 +42,7 @@ public sealed record AccountConfig
     /// <summary>Optional language tag passed to Chromium. Key: browser_language.</summary>
     public string? BrowserLanguage { get; init; }
 
-    /// <summary>interactive (default) or auto: try an existing session headlessly before opening a window. Key: browser_mode.</summary>
+    /// <summary>auto (default for Chromium): try an existing session headlessly before opening a window; interactive: always open a window (default for webview). Key: browser_mode.</summary>
     public string? BrowserMode { get; init; }
 
     /// <summary>Maximum silent attempt duration within the overall timeout. Key: silent_timeout.</summary>

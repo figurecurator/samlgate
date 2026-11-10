@@ -16,6 +16,18 @@ public static class BrowserPreferences
         _ => throw new SamlgateException("browser_mode must be 'interactive' or 'auto'."),
     };
 
+    /// <summary>
+    /// The effective mode for a login. An explicit browser_mode wins; when unset, Chromium browsers try the stored
+    /// session headlessly first (auto), while the native WebView, which has no headless mode, stays interactive.
+    /// </summary>
+    public static BrowserCaptureMode ResolveMode(string? value, string? browserType) =>
+        !string.IsNullOrWhiteSpace(value) ? ParseMode(value)
+        : IsWebView(browserType) ? BrowserCaptureMode.Interactive
+        : BrowserCaptureMode.Auto;
+
+    public static bool IsWebView(string? browserType) =>
+        browserType?.Trim().Equals("webview", StringComparison.OrdinalIgnoreCase) == true;
+
     public static string? ValidateLanguage(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
