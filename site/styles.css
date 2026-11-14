@@ -53,7 +53,8 @@ code { font-family: var(--mono); font-size: .92em; }
 .button:hover { background: var(--green-dark); }
 .secondary { font-size: .88rem; font-weight: 640; }
 
-.hero-visual { display: grid; place-items: center; min-width: 0; padding: 8%; border-radius: 15px; background: radial-gradient(ellipse at 20% 10%, #3d5542, #192b22 75%); }
+.hero-visual { display: grid; place-items: center; gap: .75rem; min-width: 0; padding: 6% 8% 8%; border-radius: 15px; background: radial-gradient(ellipse at 50% 16%, #4c7977, #192b22 75%); }
+.hero-mascot { display: block; width: clamp(128px, 46%, 208px); height: auto; }
 .terminal { width: 100%; border: 1px solid var(--term-line); border-radius: 10px; background: var(--term-bg); color: var(--term-ink); overflow: hidden; box-shadow: 0 12px 30px #10171066; }
 .terminal-bar { display: flex; gap: .8rem; align-items: center; padding: .65rem .9rem; color: #d0d9cd; background: var(--term-bar); font: .75rem var(--mono); }
 .terminal-dots { display: flex; gap: 5px; }
